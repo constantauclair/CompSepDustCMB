@@ -23,7 +23,7 @@ dn = 2
 pbc = True
 norm="auto"
 
-SNR = 2
+SNR = 1
 
 optim_params = {"maxiter": 100, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -41,10 +41,11 @@ Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:101].real
 
 ## Normalizing the data
 
-dust_mean = np.mean(Dust)
-Dust = Dust - dust_mean
-Dust = Dust / np.std(Dust) * np.std(Noise) * SNR
-Dust = Dust + dust_mean
+Dust = (Dust - np.mean(Dust)) / np.std(Dust)
+
+Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
+
+Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
 
 Mixture = Dust + Noise
 
