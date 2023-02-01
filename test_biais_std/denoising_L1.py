@@ -14,7 +14,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_L1.npy"
+file_name="denoising_L1_d_norm.npy"
 
 M, N = 256, 256
 J = 6
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=devices[0])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
-    s_norm = Dust
+    s_norm = Mixture
     
     print("Computing stats of target image...")
     start_time = time.time()
