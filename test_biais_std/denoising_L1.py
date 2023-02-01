@@ -14,7 +14,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising.npy"
+file_name="denoising_L1.npy"
 
 M, N = 256, 256
 J = 6
