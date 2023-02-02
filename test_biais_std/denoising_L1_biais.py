@@ -117,7 +117,7 @@ if __name__ == "__main__":
     for i in range(n_step):
         # Initialization of the map
         if i == 0:
-            x0 = torch.from_numpy(Mixture).to(device)
+            x0 = torch.from_numpy(Mixture)
         else:
             x0 = Dust_tilde
         
