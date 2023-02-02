@@ -25,8 +25,8 @@ norm="auto"
 
 SNR = 1
 
-n_step = 1
-iter_per_step = 100
+n_step = 50
+iter_per_step = 5
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
         COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64).to(device)
         for i in range(noise_batch.shape[0]):
-            u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(Dust).to(device) + noise_batch[i], pbc=pbc)
+            u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
                 COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).type(torch.complex64)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         
         mean_coeffs = torch.mean(COEFFS_,axis=0) # mean coeffs of u+n_i
         
-        bias = mean_coeffs - wph_op.apply(torch.from_numpy(Dust).to(device), norm=norm, pbc=pbc) # mean coeffs of u+n_i - coeffs of u
+        bias = mean_coeffs - wph_op.apply(x0, norm=norm, pbc=pbc) # mean coeffs of u+n_i - coeffs of u
             
         coeffs_target = wph_op.apply(x0, norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         print("Done ! (in {:}s)".format(time.time() - start_time))
