@@ -58,12 +58,12 @@ def batch(Mn, n, batch_size = 10):
     if Mn % batch_size != 0:
         batch = torch.zeros([x+1,batch_size,M,N])
         for i in range(x):
-            batch[i] = n[i*batch_size:(i+1)*batch_size]
-            batch[x] = n[x*batch_size:]
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+            batch[x] = n[x*batch_size:,:,:]
     else:
         batch = torch.zeros([x,batch_size,M,N])
         for i in range(x):
-            batch[i] = n[i*batch_size:(i+1)*batch_size]
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch
     
 def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
