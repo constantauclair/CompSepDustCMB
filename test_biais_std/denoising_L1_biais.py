@@ -117,7 +117,7 @@ if __name__ == "__main__":
     for i in range(n_step):
         # Initialization of the map
         if i == 0:
-            x0 = torch.from_numpy(Mixture)
+            x0 = torch.from_numpy(Mixture).to(device)
         else:
             x0 = Dust_tilde
         
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(x0, norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         print("Done ! (in {:}s)".format(time.time() - start_time))
         
-        result = opt.minimize(objective, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, x0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
     
     ## Output
