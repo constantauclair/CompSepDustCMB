@@ -141,13 +141,14 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(x0, norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         print("Done ! (in {:}s)".format(time.time() - start_time))
         
+        # Minimization
         result = opt.minimize(objective, x0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
-    
+        
+        # Reshaping
+        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        
     ## Output
-    
-    # Reshaping
-    Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
     
     print("Denoising ended in {:} iterations with optimizer message: {:}".format(niter,msg))
     
