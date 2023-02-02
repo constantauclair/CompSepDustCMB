@@ -34,7 +34,7 @@ device = 0 # GPU to use
 
 Mn = 100 # Number of noises per iteration
 batch_size = 10
-n_batch = Mn/batch_size
+n_batch = int(Mn/batch_size)
 
 ## Loading the data
 
@@ -125,8 +125,7 @@ if __name__ == "__main__":
         print("Computing target coeffs...")
         start_time = time.time()
         noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-        print(n_batch,len(true_coeffs))
-        COEFFS_ = torch.zeros([n_batch,len(true_coeffs)])
+        COEFFS_ = torch.zeros((n_batch,len(true_coeffs)))
         for i in range(noise_batch.shape[0]):
             u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
             for j in range(nb_chunks):
