@@ -63,7 +63,7 @@ def create_batch(Mn, n, batch_size = 10):
     else:
         batch = torch.zeros([x,batch_size,M,N])
         for i in range(x):
-            print(batch[i].size())
+            print(n[i*batch_size:(i+1)*batch_size,:,:].size())
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch
     
