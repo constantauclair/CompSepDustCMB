@@ -136,7 +136,7 @@ if __name__ == "__main__":
         
         mean_coeffs = torch.mean(COEFFS_,axis=0) # mean coeffs of u+n_i
         
-        bias = mean_coeffs - wph_op.apply(x0, norm=norm, pbc=pbc) # mean coeffs of u+n_i - coeffs of u
+        bias = mean_coeffs - wph_op.apply(torch.from_numpy(Dust).to(device), norm=norm, pbc=pbc) # mean coeffs of u+n_i - coeffs of u
             
         coeffs_target = wph_op.apply(x0, norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         print("Done ! (in {:}s)".format(time.time() - start_time))
