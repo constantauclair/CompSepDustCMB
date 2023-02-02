@@ -125,12 +125,12 @@ if __name__ == "__main__":
         print("Computing target coeffs...")
         start_time = time.time()
         noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-        COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.double)
+        COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64)
         for i in range(noise_batch.shape[0]):
             u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-                COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0)
+                COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).astype(torch.complex64)
                 del coeffs_chunk, indices
             sys.stdout.flush() # Flush the standard output
         
