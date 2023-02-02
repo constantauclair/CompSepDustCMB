@@ -119,7 +119,7 @@ if __name__ == "__main__":
         if i == 0:
             x0 = torch.from_numpy(Mixture).to(device)
         else:
-            x0 = Dust_tilde
+            x0 = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
         print("Computing target coeffs...")
