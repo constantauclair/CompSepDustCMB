@@ -53,9 +53,9 @@ Mixture = Dust + Noise
 # DENOISING
 #######
 
-def create_batch(Mn, n, batch_size = 10):
-    x = Mn//batch_size
-    if Mn % batch_size != 0:
+def create_batch(n_maps, n, batch_size = 10):
+    x = n_maps//batch_size
+    if n_maps % batch_size != 0:
         batch = torch.zeros([x+1,batch_size,M,N])
         for i in range(x):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
@@ -63,7 +63,6 @@ def create_batch(Mn, n, batch_size = 10):
     else:
         batch = torch.zeros([x,batch_size,M,N])
         for i in range(x):
-            print(n[i*batch_size:(i+1)*batch_size,:,:].size())
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch
     
@@ -90,7 +89,7 @@ def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     # Compute the loss
     wph_op.clear_normalization()
     wph_op.apply(norm_map_1, norm=norm, pbc=pbc)
-    noise_batch = create_batch(Mn, Noise_syn_)
+    noise_batch = create_batch(len(Noise_syn_), Noise_syn_)
     loss_tot1 = torch.zeros(1)
     for i in range(noise_batch.shape[0]):
         u_noisy, nb_chunks = wph_op.preconfigure(u + noise_batch[i], pbc=pbc)
