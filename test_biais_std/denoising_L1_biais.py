@@ -14,7 +14,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_L1_biais.npy"
+file_name="denoisings/denoising_L1_biais.npy"
 
 M, N = 256, 256
 J = 6
@@ -25,8 +25,8 @@ norm="auto"
 
 SNR = 1
 
-n_step = 5
-iter_per_step = 20
+n_step = 10
+iter_per_step = 100
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         print("Done ! (in {:}s)".format(time.time() - start_time))
         
         # Minimization
-        result = opt.minimize(objective, x0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.from_numpy(Mixture).cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
