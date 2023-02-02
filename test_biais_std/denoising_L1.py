@@ -62,9 +62,9 @@ def batch_bruits(Mn, n, pas = 10, ret_indices = False):
         N.append(n[(x)*pas : ])
         indices.append(np.arange((x)*pas, Mn))
     if ret_indices:
-        return torch.tensor(N), torch.tensor(indices)
+        return torch.from_numpy(N), torch.from_numpy(indices)
     else:
-        return torch.tensor(N)
+        return torch.from_numpy(N)
     
 def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     """
