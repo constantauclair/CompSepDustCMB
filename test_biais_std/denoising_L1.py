@@ -37,7 +37,7 @@ Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
 
 Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
 
-Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:101].real
+Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
 ## Normalizing the data
 

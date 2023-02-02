@@ -39,7 +39,7 @@ Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
 
 Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
 
-Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:101].real
+Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
 ## Normalizing the data
 
@@ -56,6 +56,19 @@ Mixture = Dust + Noise
 #######
 # DENOISING
 #######
+
+def create_batch(n_maps, n, device, batch_size = 10):
+    x = n_maps//batch_size
+    if n_maps % batch_size != 0:
+        batch = torch.zeros([x+1,batch_size,M,N])
+        for i in range(x):
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+            batch[x] = n[x*batch_size:,:,:]
+    else:
+        batch = torch.zeros([x,batch_size,M,N])
+        for i in range(x):
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+    return batch.to(device)
 
 def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     """
@@ -83,9 +96,10 @@ def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     # Compute the L1
     wph_op.clear_normalization()
     wph_op.apply(norm_map_1, norm=norm, pbc=pbc)
+    noise_batch = create_batch(len(Noise_syn_), Noise_syn_, device=device)
     loss_tot1 = torch.zeros(1)
-    for i in range(len(work_list)):
-        u_noisy, nb_chunks = wph_op.preconfigure(u + Noise_syn_[i], pbc=pbc)
+    for i in range(noise_batch.shape[0]):
+        u_noisy, nb_chunks = wph_op.preconfigure(u + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
             loss = torch.sum(torch.abs(coeffs_chunk - coeffs_tar_1[indices]) ** 2) / Mn
