@@ -130,7 +130,7 @@ if __name__ == "__main__":
             u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-                COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).astype(torch.complex64)
+                COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).type(torch.complex64)
                 del coeffs_chunk, indices
             sys.stdout.flush() # Flush the standard output
         
