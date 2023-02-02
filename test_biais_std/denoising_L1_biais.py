@@ -127,7 +127,7 @@ if __name__ == "__main__":
         noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
         COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64).to(device)
         for i in range(noise_batch.shape[0]):
-            u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
+            u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(Dust).to(device) + noise_batch[i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
                 COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).type(torch.complex64)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         print("Done ! (in {:}s)".format(time.time() - start_time))
         
         # Minimization
-        result = opt.minimize(objective, torch.from_numpy(Mixture).cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, x0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
