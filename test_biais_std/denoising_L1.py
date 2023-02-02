@@ -14,13 +14,13 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_L1_s_norm_pbc=False.npy"
+file_name="denoising_L1_s_norm_batch.npy"
 
 M, N = 256, 256
 J = 6
 L = 4
 dn = 2
-pbc = False
+pbc = True
 norm="auto"
 
 SNR = 1
@@ -53,6 +53,19 @@ Mixture = Dust + Noise
 # DENOISING
 #######
 
+def batch_bruits(Mn, n, pas = 10, ret_indices = False):
+    x = Mn//pas
+    indices = []
+    N = [n[i*pas:(i+1)*pas] for i in range(x)]
+    indices = [np.arange(i*pas,(i+1)*pas) for i in range(x)]
+    if Mn%pas != 0:
+        N.append(n[(x)*pas : ])
+        indices.append(np.arange((x)*pas, Mn))
+    if ret_indices:
+        return torch.tensor(N), torch.tensor(indices)
+    else:
+        return torch.tensor(N)
+    
 def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     """
         Compute part of the loss and of the corresponding gradient on the target device (device_id).
@@ -76,9 +89,10 @@ def objective_per_gpu(u, coeffs_target, wph_op, work_list, device_id):
     # Compute the loss
     wph_op.clear_normalization()
     wph_op.apply(norm_map_1, norm=norm, pbc=pbc)
+    n_batch = batch_bruits(Mn, Noise_syn_)
     loss_tot1 = torch.zeros(1)
-    for i in range(len(work_list)):
-        u_noisy, nb_chunks = wph_op.preconfigure(u + Noise_syn_[i], pbc=pbc)
+    for i in range(n_batch.shape[0]):
+        u_noisy, nb_chunks = wph_op.preconfigure(u + n_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
             loss = torch.sum(torch.abs(coeffs_chunk - coeffs_tar_1[indices]) ** 2) / Mn
