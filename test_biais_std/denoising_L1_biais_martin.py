@@ -24,7 +24,7 @@ norm="auto"
 SNR = 1
 
 n_step = 10
-iter_per_step = 10
+iter_per_step = 20
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -116,6 +116,7 @@ def objective(x):
 
 if __name__ == "__main__":
     
+    total_start_time = time.time()
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
@@ -153,7 +154,7 @@ if __name__ == "__main__":
         
     ## Output
     
-    print("Denoising ended in {:} iterations with optimizer message: {:}".format(niter,msg))
+    print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
         np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde])
