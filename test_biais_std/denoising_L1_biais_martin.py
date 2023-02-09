@@ -74,17 +74,14 @@ def create_batch(n_maps, n, device, batch_size):
 def compute_bias(x):
     print("Computing bias...")
     local_start_time = time.time()
-    x = x.to(device)
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-    #COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64).to(device)
     coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
-    bias = torch.zeros((len(true_coeffs)))
+    bias = torch.zeros((len(true_coeffs))).to(device)
     for i in range(noise_batch.shape[0]):
         u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
             bias[indices] += torch.sum(coeffs_chunk - coeffs_ref[indices], axis=0) / Mn
-            #COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).type(torch.complex64)
             del coeffs_chunk, indices
         del u_noisy, nb_chunks
         sys.stdout.flush() # Flush the standard output
