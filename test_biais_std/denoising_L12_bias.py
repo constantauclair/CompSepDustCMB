@@ -26,7 +26,7 @@ alpha = 1 # L2 factor
 SNR = 1
 
 n_step = 10
-iter_per_step = 50
+iter_per_step = 100
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -132,8 +132,7 @@ def objective(x):
     
     loss_tot = loss_tot1 + loss_tot2
     
-    #print(f"L = {loss_tot1.item()} + {loss_tot2.item()} = {loss_tot.item()} (computed in {time.time() - start_time}s)")
-    print("L = "+str(loss_tot.item())+" = "+str(loss_tot1.item())+" + "+str(loss_tot2.item())+" (computed in "+str(time.time() - start_time)+"s)")
+    print("L = "+str(round(loss_tot.item(),3))+" = "+str(round(loss_tot1.item(),3))+" + "+str(round(loss_tot2.item(),3))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
 
     eval_cnt += 1
     return loss_tot.item(), x_grad.ravel()
@@ -182,8 +181,8 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        #result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
