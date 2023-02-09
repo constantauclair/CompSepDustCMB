@@ -94,14 +94,11 @@ def objective(n):
     # Reshape n
     n_curr = n.reshape((M, N))
     
-    # Change of variable from noise to dust 
-    x_curr = torch.from_numpy(Mixture) - n_curr
-    
     # Compute the loss
     loss_tot = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    n_curr, nb_chunks = wph_op.preconfigure(n_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - n_curr, i, norm=norm, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2)
         loss.backward(retain_graph=True)
         loss_tot += loss.detach().cpu()
@@ -148,7 +145,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective, Noise_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.zeros(Mixture.size()).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Noise_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
