@@ -124,7 +124,7 @@ if __name__ == "__main__":
     
     print("Computing stats of target image...")
     start_time = time.time()
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C00","L"])
     true_coeffs = wph_op.apply(Dust, norm=norm, pbc=pbc)
     
     ## Minimization
