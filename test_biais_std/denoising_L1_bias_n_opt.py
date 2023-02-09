@@ -93,11 +93,13 @@ def objective(n):
     
     # Reshape n
     n_curr = n.reshape((M, N))
-    print(n_curr)
+    
+    # Change of variable from noise to dust 
+    x_curr = torch.from_numpy(Mixture) - n_curr
     
     # Compute the loss
     loss_tot = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture) - n_curr, requires_grad=True, pbc=pbc)
+    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2)
