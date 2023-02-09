@@ -96,9 +96,7 @@ def objective(n):
     
     # Compute the loss
     loss_tot = torch.zeros(1)
-    print(torch.from_numpy(Mixture).to(device))
-    print(n_curr)
-    x_curr, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - n_curr, requires_grad=True, pbc=pbc)
+    x_curr, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture) - n_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2)
