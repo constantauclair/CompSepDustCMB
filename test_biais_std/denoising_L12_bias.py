@@ -132,7 +132,8 @@ def objective(x):
     
     loss_tot = loss_tot1 + loss_tot2
     
-    print(f"L = {loss_tot1.item()} + {loss_tot2.item()} = {loss_tot.item()} (computed in {time.time() - start_time}s)")
+    #print(f"L = {loss_tot1.item()} + {loss_tot2.item()} = {loss_tot.item()} (computed in {time.time() - start_time}s)")
+    print("L = "+str(loss_tot.item())+" = "+str(loss_tot1.item())+" + "+str(loss_tot2.item())+" (computed in "+str(time.time() - start_time)+"s)")
 
     eval_cnt += 1
     return loss_tot.item(), x_grad.ravel()
