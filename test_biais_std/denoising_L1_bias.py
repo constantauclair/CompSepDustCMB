@@ -3,8 +3,6 @@ import warnings
 warnings.filterwarnings('ignore')
 import time
 import sys
-import multiprocessing as mp
-from functools import partial
 import numpy as np
 import torch
 import scipy.optimize as opt
@@ -14,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoisings/denoising_L1_biais.npy"
+file_name="denoisings/denoising_L1_biais_martin.npy"
 
 M, N = 256, 256
 J = 6
@@ -25,8 +23,8 @@ norm="auto"
 
 SNR = 1
 
-n_step = 50
-iter_per_step = 5
+n_step = 10
+iter_per_step = 20
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -35,6 +33,8 @@ device = 0 # GPU to use
 Mn = 100 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
+
+loss_evolution = []
 
 ## Loading the data
 
@@ -71,6 +71,23 @@ def create_batch(n_maps, n, device, batch_size):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
     
+def compute_bias(x):
+    print("Computing bias...")
+    local_start_time = time.time()
+    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
+    bias = coeffs_ref * 0
+    for i in range(noise_batch.shape[0]):
+        u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
+            bias[indices] += torch.sum(coeffs_chunk - coeffs_ref[indices], axis=0) / Mn
+            del coeffs_chunk, indices
+        del u_noisy, nb_chunks
+        sys.stdout.flush() # Flush the standard output
+    print("Done ! (in {:}s)".format(time.time() - local_start_time))
+    return bias
+
 def objective(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
@@ -99,6 +116,7 @@ def objective(x):
 
 if __name__ == "__main__":
     
+    total_start_time = time.time()
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
@@ -113,36 +131,23 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
+    Dust_tilde = Mixture
+    
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step):
+        
         # Initialization of the map
-        if i == 0:
-            x0 = torch.from_numpy(Mixture).to(device)
-        else:
-            x0 = torch.from_numpy(Dust_tilde).to(device)
+        Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        print("Computing target coeffs...")
-        start_time = time.time()
-        noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-        COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64).to(device)
-        for i in range(noise_batch.shape[0]):
-            u_noisy, nb_chunks = wph_op.preconfigure(x0 + noise_batch[i], pbc=pbc)
-            for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-                COEFFS_[i,indices] = torch.mean(coeffs_chunk,axis=0).type(torch.complex64)
-                del coeffs_chunk, indices
-            sys.stdout.flush() # Flush the standard output
+        bias = compute_bias(Dust_tilde)
         
-        mean_coeffs = torch.mean(COEFFS_,axis=0) # mean coeffs of u+n_i
-        
-        bias = mean_coeffs - wph_op.apply(x0, norm=norm, pbc=pbc) # mean coeffs of u+n_i - coeffs of u
-            
-        coeffs_target = wph_op.apply(x0, norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
-        print("Done ! (in {:}s)".format(time.time() - start_time))
+        # Coeffs target computation
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        result = opt.minimize(objective, x0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
@@ -150,7 +155,7 @@ if __name__ == "__main__":
         
     ## Output
     
-    print("Denoising ended in {:} iterations with optimizer message: {:}".format(niter,msg))
+    print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
         np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde])
