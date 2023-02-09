@@ -145,8 +145,8 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        #result = opt.minimize(objective, Noise_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        result = opt.minimize(objective, np.zeros(np.shape(Mixture)).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, Noise_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective, np.zeros(np.shape(Mixture)).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Noise_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
