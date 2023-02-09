@@ -21,6 +21,8 @@ dn = 2
 pbc = True
 norm="auto"
 
+alpha = 1 # L2 factor
+
 SNR = 1
 
 n_step = 10
@@ -79,6 +81,8 @@ def compute_bias(x):
     print("Computing bias...")
     local_start_time = time.time()
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    wph_op.clear_normalization()
+    wph_op.apply(torch.from_numpy(norm1).to(device), norm=norm, pbc=pbc)
     coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
     bias = coeffs_ref * 0
     for i in range(noise_batch.shape[0]):
@@ -100,20 +104,37 @@ def objective(x):
     # Reshape x
     x_curr = x.reshape((M, N))
     
-    # Compute the loss
-    loss_tot = torch.zeros(1)
+    # Compute the loss 1
+    wph_op.clear_normalization()
+    wph_op.apply(torch.from_numpy(norm1).to(device), norm=norm, pbc=pbc)
+    loss_tot1 = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2)
         loss.backward(retain_graph=True)
-        loss_tot += loss.detach().cpu()
+        loss_tot1 += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+        
+    # Compute the loss 2
+    wph_op.clear_normalization()
+    wph_op.apply(torch.from_numpy(norm2).to(device), norm=norm, pbc=pbc)
+    loss_tot2 = torch.zeros(1)
+    n_curr, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - x_curr, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=norm, ret_indices=True, pbc=pbc)
+        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_noise[indices]) ** 2)
+        loss = alpha * loss
+        loss.backward(retain_graph=True)
+        loss_tot2 += loss.detach().cpu()
         del coeffs_chunk, indices, loss
     
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
     
-    print(f"Loss: {loss_tot.item()} (computed in {time.time() - start_time}s)")
+    loss_tot = loss_tot1 + loss_tot2
+    
+    print(f"L = {loss_tot1.item()} + {loss_tot2.item()} = {loss_tot.item()} (computed in {time.time() - start_time}s)")
 
     eval_cnt += 1
     return loss_tot.item(), x_grad.ravel()
@@ -157,6 +178,8 @@ if __name__ == "__main__":
         bias = compute_bias(Dust_tilde)
         
         # Coeffs target computation
+        wph_op.clear_normalization()
+        wph_op.apply(torch.from_numpy(norm1).to(device), norm=norm, pbc=pbc)
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
