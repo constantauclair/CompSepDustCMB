@@ -44,6 +44,8 @@ Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
 
 Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
+Noise_model = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[Mn+1].real
+
 ## Normalizing the data
 
 Dust = (Dust - np.mean(Dust)) / np.std(Dust)
@@ -51,6 +53,8 @@ Dust = (Dust - np.mean(Dust)) / np.std(Dust)
 Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
 
 Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
+
+Noise_model = (Noise_model - np.mean(Noise_model)) / np.std(Noise_model) / SNR
 
 Mixture = Dust + Noise
 
@@ -122,10 +126,20 @@ if __name__ == "__main__":
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
+    norm1 = Dust
+    norm2 = Noise_model
+    
     print("Computing stats of target image...")
     start_time = time.time()
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    
+    wph_op.apply(norm1, norm=norm, pbc=pbc)
     true_coeffs = wph_op.apply(Dust, norm=norm, pbc=pbc)
+    wph_op.clear_normalization()
+    
+    wph_op.apply(norm2, norm=norm, pbc=pbc)
+    coeffs_noise = wph_op.apply(Noise_model, norm=norm, pbc=pbc)
+    wph_op.clear_normalization()
     
     ## Minimization
     
@@ -146,8 +160,8 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        #result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
