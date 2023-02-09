@@ -129,7 +129,7 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
-    Noise_tilde = Mixture * 0
+    Noise_tilde = np.zeros(np.shape(Mixture))
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step):
