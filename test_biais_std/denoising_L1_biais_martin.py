@@ -24,9 +24,10 @@ norm="auto"
 SNR = 1
 
 n_step = 10
-iter_per_step = 50
+min_iter_per_step = 30
+iter_increment = 5
 
-optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+#optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 device = 0 # GPU to use
 
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options={"maxiter": min_iter_per_step+i*iter_increment, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
