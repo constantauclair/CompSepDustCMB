@@ -93,6 +93,7 @@ def objective(n):
     
     # Reshape n
     n_curr = n.reshape((M, N))
+    print(n_curr)
     
     # Compute the loss
     loss_tot = torch.zeros(1)
