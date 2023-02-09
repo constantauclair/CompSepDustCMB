@@ -24,10 +24,9 @@ norm="auto"
 SNR = 1
 
 n_step = 10
-min_iter_per_step = 30
-iter_increment = 5
+iter_per_step = 20
 
-#optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 device = 0 # GPU to use
 
@@ -147,8 +146,8 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        #result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options={"maxiter": min_iter_per_step+i*iter_increment, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
+        result = opt.minimize(objective, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
