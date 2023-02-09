@@ -74,6 +74,7 @@ def create_batch(n_maps, n, device, batch_size):
 def compute_bias(x):
     print("Computing bias...")
     local_start_time = time.time()
+    x = x.to(device)
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     #COEFFS_ = torch.zeros((n_batch,len(true_coeffs))).type(torch.complex64).to(device)
     coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
