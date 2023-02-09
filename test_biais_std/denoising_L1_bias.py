@@ -21,9 +21,9 @@ dn = 2
 pbc = True
 norm="auto"
 
-SNR = 0.5
+SNR = 1
 
-n_step = 10
+n_step = 20
 iter_per_step = 20
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
