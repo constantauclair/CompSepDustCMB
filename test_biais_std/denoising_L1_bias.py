@@ -34,8 +34,6 @@ Mn = 100 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
 
-loss_evolution = []
-
 ## Loading the data
 
 Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
