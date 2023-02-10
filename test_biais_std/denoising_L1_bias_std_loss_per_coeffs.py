@@ -107,13 +107,13 @@ def compute_coeffs_bias_std(x,norm):
         wph = wph_op.apply(x, norm=norm, pbc=pbc, ret_wph_obj=True)
         coeffs_ref = wph.get_coeffs(wph_model[i])
         coeffs_number = len(coeffs_ref)
-        COEFFS = torch.zeros((Mn,coeffs_number))#.type(dtype=coeffs_ref.type())
+        COEFFS = torch.zeros((Mn,coeffs_number))
         computed_noise = 0
         for j in range(noise_batch.shape[0]):
             this_batch_size = len(noise_batch[j])
             u_noisy = x + noise_batch[j]
             wph = wph_op.apply(u_noisy, norm=norm, pbc=pbc, ret_wph_obj=True)
-            coeffs = wph.get_coeffs(wph_model[i]) - coeffs_ref
+            coeffs = torch.tensor(wph.get_coeffs(wph_model[i])) - torch.tensor(coeffs_ref)
             COEFFS[computed_noise:computed_noise+this_batch_size] = coeffs
             computed_noise += this_batch_size
             del u_noisy, this_batch_size, coeffs
