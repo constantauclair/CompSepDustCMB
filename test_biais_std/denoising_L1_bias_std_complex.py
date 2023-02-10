@@ -39,11 +39,11 @@ n_batch = int(Mn/batch_size)
 
 ## Loading the data
 
-Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
+Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2].astype(np.float64)
 
-Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
+Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real.astype(np.float64)
 
-Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
+Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real.astype(np.float64)
 
 ## Normalizing the data
 
