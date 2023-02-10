@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoisings/denoising_L1_bias_std.npy"
+file_name="denoisings/denoising_L1_bias_std_bis.npy"
 
 M, N = 256, 256
 J = 6
