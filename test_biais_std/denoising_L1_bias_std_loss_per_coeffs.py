@@ -104,16 +104,16 @@ def compute_coeffs_bias_std(x,norm):
     BIAS = []
     STD = []
     for i in range(len(wph_model)):
-        wph_op.clear_normalization()
-        wph_op.load_model([wph_model[i]])
-        coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
+        wph = wph_op.apply(x, norm=norm, pbc=pbc, ret_wph_obj=True)
+        coeffs_ref = wph.get_coeffs(wph_model[i])
         coeffs_number = len(coeffs_ref)
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
         computed_noise = 0
-        for i in range(noise_batch.shape[0]):
-            this_batch_size = len(noise_batch[i])
-            u_noisy = x + noise_batch[i]
-            coeffs = wph_op.apply(u_noisy, norm=norm, pbc=pbc) - coeffs_ref
+        for j in range(noise_batch.shape[0]):
+            this_batch_size = len(noise_batch[j])
+            u_noisy = x + noise_batch[j]
+            wph = wph_op.apply(u_noisy, norm=norm, pbc=pbc, ret_wph_obj=True)
+            coeffs = wph.get_coeffs(wph_model[i]) - coeffs_ref
             COEFFS[computed_noise:computed_noise+this_batch_size] = coeffs
             computed_noise += this_batch_size
             del u_noisy, this_batch_size, coeffs
@@ -162,9 +162,9 @@ def objective2(x):
     loss_tot = torch.zeros(1)
     x_curr = torch.from_numpy(x_curr).requires_grad_(True)
     #x_curr, _ = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    wph = wph_op.apply(x_curr, norm='auto', pbc=pbc, ret_wph_obj=True)
     for i in range(len(wph_model)):
-        wph_op.load_model([wph_model[i]])
-        coeffs = wph_op.apply(x_curr, norm='auto', pbc=pbc)
+        coeffs = wph.get_coeffs(wph_model[i])
         loss = torch.sum(torch.abs( (coeffs - coeffs_target[i]) / std[i] ) ** 2)
         loss = loss / (len(coeffs) * len(wph_model))
         loss.backward(retain_graph=True)
@@ -220,10 +220,10 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
+    wph_op.clear_normalization()
     wph_model = ["S11","S00","S01","Cphase","C01","C00","L"]
     wph_op.load_model(wph_model)
     
-    wph_op.clear_normalization()
     wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc)
     
     Dust_tilde = Dust_tilde0
@@ -237,20 +237,11 @@ if __name__ == "__main__":
         # Bias computation
         bias, std = compute_coeffs_bias_std(Dust_tilde,'auto')
         
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][0])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][1])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][2])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][3])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][4])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][5])
-        # print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][6])
-        #print(compute_bias_std(Dust_tilde,'auto'))
-        
         # Coeffs target computation
         coeffs_target = []
         for j in range(len(wph_model)):
-            wph_op.load_model([wph_model[j]])
-            coeffs_target.append(wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc) - bias[j])
+            wph = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc, ret_wph_obj=True)
+            coeffs_target.append(wph.get_coeffs(wph_model[j]) - bias[j])
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
