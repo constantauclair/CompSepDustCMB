@@ -176,7 +176,7 @@ def objective2(x):
         loss = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices] ) ** 2)
         loss = loss / len(indices)
         loss.backward(retain_graph=True)
-        loss_tot_real += loss.detach().cpu()
+        loss_tot_imag += loss.detach().cpu()
         del coeffs_chunk, indices, loss
     
     # Reshape the gradient
