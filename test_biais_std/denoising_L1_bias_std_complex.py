@@ -173,7 +173,8 @@ def objective2(x):
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices] ) ** 2)
+        non_zero_imag_part = torch.where(torch.imag(coeffs_chunk)!=0)
+        loss = torch.sum(torch.abs( (torch.imag(coeffs_chunk[non_zero_imag_part]) - coeffs_target[1][indices][non_zero_imag_part]) / std[1][indices][non_zero_imag_part] ) ** 2)
         loss = loss / len(indices)
         loss.backward(retain_graph=True)
         loss_tot_imag += loss.detach().cpu()
@@ -245,11 +246,6 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_complex_bias_std(Dust_tilde,'auto')
-        
-        print(bias[0])
-        print(bias[1])
-        print(std[0])
-        print(std[1])
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc)
