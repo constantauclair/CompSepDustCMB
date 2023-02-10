@@ -164,7 +164,7 @@ def objective2(x):
     #x_curr, _ = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     wph = wph_op.apply(x_curr, norm='auto', pbc=pbc, ret_wph_obj=True)
     for i in range(len(wph_model)):
-        coeffs = wph.get_coeffs(wph_model[i])[0]
+        coeffs = torch.from_numpy(wph.get_coeffs(wph_model[i])[0])
         loss = torch.sum(torch.abs( (coeffs - coeffs_target[i]) / std[i] ) ** 2)
         loss = loss / (len(coeffs) * len(wph_model))
         loss.backward(retain_graph=True)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         coeffs_target = []
         for j in range(len(wph_model)):
             wph = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc, ret_wph_obj=True)
-            coeffs_target.append(wph.get_coeffs(wph_model[j])[0] - bias[j])
+            coeffs_target.append(torch.from_numpy(wph.get_coeffs(wph_model[j])[0]) - bias[j])
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
