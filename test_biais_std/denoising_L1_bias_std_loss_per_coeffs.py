@@ -236,8 +236,14 @@ if __name__ == "__main__":
         # Bias computation
         bias, std = compute_coeffs_bias_std(Dust_tilde,'auto')
         
-        print(compute_coeffs_bias_std(Dust_tilde,'auto'))
-        print(compute_bias_std(Dust_tilde,'auto'))
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][0])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][1])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][2])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][3])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][4])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][5])
+        print(compute_coeffs_bias_std(Dust_tilde,'auto')[0][6])
+        #print(compute_bias_std(Dust_tilde,'auto'))
         
         # Coeffs target computation
         coeffs_target = []
