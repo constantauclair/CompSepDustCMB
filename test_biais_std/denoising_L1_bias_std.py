@@ -130,7 +130,8 @@ if __name__ == "__main__":
     
     print("Computing stats of target image...")
     start_time = time.time()
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_op.load_model(["S11"])
     
     ## Minimization
     
