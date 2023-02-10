@@ -101,12 +101,11 @@ def compute_coeffs_bias_std(x,norm):
     print("Computing bias and std...")
     local_start_time = time.time()
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-    coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
-    coeffs_number = len(coeffs_ref)
     BIAS = []
     STD = []
     computed_noise = 0
     for i in range(len(wph_model)):
+        wph_op.clear_normalization()
         wph_op.load_model([wph_model[i]])
         coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
         coeffs_number = len(coeffs_ref)
