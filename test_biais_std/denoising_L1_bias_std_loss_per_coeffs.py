@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoisings/denoising_L1_bias_std.npy"
+file_name="denoisings/denoising_L1_bias_std_loss_per_coeffs.npy"
 
 M, N = 256, 256
 J = 6
@@ -97,6 +97,33 @@ def compute_bias_std(x,norm):
     print("Done ! (in {:}s)".format(time.time() - local_start_time))
     return bias, std
 
+def compute_coeffs_bias_std(x,norm):
+    print("Computing bias and std...")
+    local_start_time = time.time()
+    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
+    coeffs_number = len(coeffs_ref)
+    BIAS = []
+    STD = []
+    computed_noise = 0
+    for i in range(len(wph_model)):
+        wph_op.load_model([wph_model[i]])
+        coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
+        coeffs_number = len(coeffs_ref)
+        COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+        for i in range(noise_batch.shape[0]):
+            this_batch_size = len(noise_batch[i])
+            u_noisy, _ = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
+            coeffs = wph_op.apply(u_noisy, norm=norm, pbc=pbc) - coeffs_ref
+            COEFFS[computed_noise:computed_noise+this_batch_size] = coeffs
+            computed_noise += this_batch_size
+            del u_noisy, this_batch_size, coeffs
+            sys.stdout.flush() # Flush the standard output
+        BIAS.append(torch.mean(COEFFS,axis=0))
+        STD.append(torch.std(COEFFS,axis=0))
+    print("Done ! (in {:}s)".format(time.time() - local_start_time))
+    return BIAS, STD
+
 def objective1(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
@@ -134,14 +161,15 @@ def objective2(x):
     
     # Compute the loss
     loss_tot = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std[indices] ) ** 2)
-        loss = loss / len(indices)
+    x_curr, _ = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    for i in range(len(wph_model)):
+        wph_op.load_model([wph_model[i]])
+        coeffs = wph_op.apply(x_curr, norm='auto', pbc=pbc)
+        loss = torch.sum(torch.abs( (coeffs - coeffs_target[i]) / std[i] ) ** 2)
+        loss = loss / (len(coeffs) * len(wph_model))
         loss.backward(retain_graph=True)
         loss_tot += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
+        del coeffs, loss
     
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
@@ -192,7 +220,8 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_model = ["S11","S00","S01","Cphase","C01","C00","L"]
+    wph_op.load_model(wph_model)
     
     wph_op.clear_normalization()
     wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc)
@@ -206,10 +235,13 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        bias, std = compute_bias_std(Dust_tilde,'auto')
+        bias, std = compute_coeffs_bias_std(Dust_tilde,'auto')
         
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc) - bias # estimation of the unbiased coefficients
+        coeffs_target = []
+        for j in range(len(wph_model)):
+            wph_op.load_model([wph_model[j]])
+            coeffs_target.append(wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc) - bias[j])
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
