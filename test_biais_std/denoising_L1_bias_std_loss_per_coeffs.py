@@ -236,6 +236,9 @@ if __name__ == "__main__":
         # Bias computation
         bias, std = compute_coeffs_bias_std(Dust_tilde,'auto')
         
+        print(compute_coeffs_bias_std(Dust_tilde,'auto'))
+        print(compute_bias_std(Dust_tilde,'auto'))
+        
         # Coeffs target computation
         coeffs_target = []
         for j in range(len(wph_model)):
