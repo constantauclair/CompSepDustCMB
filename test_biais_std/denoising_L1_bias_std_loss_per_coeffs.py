@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 5
+n_step1 = 1
 iter_per_step1 = 50
 
 n_step2 = 10
@@ -103,13 +103,13 @@ def compute_coeffs_bias_std(x,norm):
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     BIAS = []
     STD = []
-    computed_noise = 0
     for i in range(len(wph_model)):
         wph_op.clear_normalization()
         wph_op.load_model([wph_model[i]])
         coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
         coeffs_number = len(coeffs_ref)
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+        computed_noise = 0
         for i in range(noise_batch.shape[0]):
             this_batch_size = len(noise_batch[i])
             u_noisy = x + noise_batch[i]
