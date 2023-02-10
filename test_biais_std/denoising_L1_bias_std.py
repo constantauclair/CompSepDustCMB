@@ -19,14 +19,17 @@ J = 6
 L = 4
 dn = 2
 pbc = True
-norm = None
 
 SNR = 1
 
-n_step = 10
-iter_per_step = 50
+n_step1 = 5
+iter_per_step1 = 50
 
-optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+n_step2 = 10
+iter_per_step2 = 50
+
+optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 device = 0 # GPU to use
 
@@ -69,7 +72,7 @@ def create_batch(n_maps, n, device, batch_size):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-def compute_bias_std(x):
+def compute_bias_std(x,norm):
     print("Computing bias and std...")
     local_start_time = time.time()
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
@@ -94,7 +97,7 @@ def compute_bias_std(x):
     print("Done ! (in {:}s)".format(time.time() - local_start_time))
     return bias, std
 
-def objective(x):
+def objective1(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
@@ -106,7 +109,33 @@ def objective(x):
     loss_tot = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std[indices] ) ** 2)
+        loss.backward(retain_graph=True)
+        loss_tot += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+    
+    # Reshape the gradient
+    x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
+    
+    print(f"Loss: {loss_tot.item()} (computed in {time.time() - start_time}s)")
+
+    eval_cnt += 1
+    return loss_tot.item(), x_grad.ravel()
+
+def objective2(x):
+    global eval_cnt
+    print(f"Evaluation: {eval_cnt}")
+    start_time = time.time()
+    
+    # Reshape x
+    x_curr = x.reshape((M, N))
+    
+    # Compute the loss
+    loss_tot = torch.zeros(1)
+    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std[indices] ) ** 2)
         loss.backward(retain_graph=True)
         loss_tot += loss.detach().cpu()
@@ -126,14 +155,10 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
+    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
-    print("Computing stats of target image...")
-    start_time = time.time()
-    #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.load_model(["S11"])
-    
-    ## Minimization
+    ## First minimization
     print("Starting first step of minimization (only S11)...")
     
     eval_cnt = 0
@@ -141,29 +166,61 @@ if __name__ == "__main__":
     Dust_tilde0 = Mixture
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
-    for i in range(n_step):
+    for i in range(n_step1):
         
         # Initialization of the map
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_bias_std(Dust_tilde0)
+        bias, std = compute_bias_std(Dust_tilde0,None)
         
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        result = opt.minimize(objective, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
-        #result = opt.minimize(objective, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
         Dust_tilde0 = Dust_tilde0.reshape((M, N)).astype(np.float32)
+        
+    ## Second minimization
+    print("Starting second step of minimization (all coeffs)...")
+    
+    eval_cnt = 0
+    
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    
+    wph_op.clear_normalization()
+    wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc)
+    
+    Dust_tilde = Dust_tilde0
+    
+    # We perform a minimization of the objective function, using the noisy map as the initial map
+    for i in range(n_step2):
+        
+        # Initialization of the map
+        Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
+        
+        # Bias computation
+        bias, std = compute_bias_std(Dust_tilde,'auto')
+        
+        # Coeffs target computation
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc) - bias # estimation of the unbiased coefficients
+        
+        # Minimization
+        #result = opt.minimize(objective2, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+        
+        # Reshaping
+        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
         
     ## Output
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde0,Mixture-Dust_tilde0])
+        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde])
         
