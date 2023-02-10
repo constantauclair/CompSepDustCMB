@@ -92,11 +92,11 @@ def compute_bias_std(x):
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
     coeffs_number = len(coeffs_ref)
-    COEFFS = torch.zeros((Mn,coeffs_number))
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_noise = 0
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
-        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number))
+        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
