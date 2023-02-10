@@ -160,7 +160,7 @@ def objective2(x):
     
     # Compute the loss
     loss_tot = torch.zeros(1)
-    x_curr = torch.from_numpy(x_curr).requires_grad(True)
+    x_curr = torch.from_numpy(x_curr).requires_grad_(True)
     #x_curr, _ = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(len(wph_model)):
         wph_op.load_model([wph_model[i]])
