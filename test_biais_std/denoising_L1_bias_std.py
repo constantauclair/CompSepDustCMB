@@ -24,7 +24,7 @@ norm = None
 SNR = 1
 
 n_step = 10
-iter_per_step = 20
+iter_per_step = 50
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -134,19 +134,20 @@ if __name__ == "__main__":
     wph_op.load_model(["S11"])
     
     ## Minimization
+    print("Starting first step of minimization (only S11)...")
     
     eval_cnt = 0
     
-    Dust_tilde = Mixture
+    Dust_tilde0 = Mixture
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step):
         
         # Initialization of the map
-        Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
+        Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_bias_std(Dust_tilde)
+        bias, std = compute_bias_std(Dust_tilde0)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=norm, pbc=pbc) - bias # estimation of the unbiased coefficients
@@ -157,12 +158,12 @@ if __name__ == "__main__":
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
-        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        Dust_tilde0 = Dust_tilde0.reshape((M, N)).astype(np.float32)
         
     ## Output
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde])
+        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde0,Mixture-Dust_tilde0])
         
