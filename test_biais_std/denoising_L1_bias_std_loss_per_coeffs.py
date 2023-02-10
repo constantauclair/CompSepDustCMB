@@ -105,7 +105,7 @@ def compute_coeffs_bias_std(x,norm):
     STD = []
     for i in range(len(wph_model)):
         wph = wph_op.apply(x, norm=norm, pbc=pbc, ret_wph_obj=True)
-        coeffs_ref = wph.get_coeffs(wph_model[i])
+        coeffs_ref = wph.get_coeffs(wph_model[i])[0]
         coeffs_number = len(coeffs_ref)
         COEFFS = torch.zeros((Mn,coeffs_number))
         computed_noise = 0
@@ -113,7 +113,7 @@ def compute_coeffs_bias_std(x,norm):
             this_batch_size = len(noise_batch[j])
             u_noisy = x + noise_batch[j]
             wph = wph_op.apply(u_noisy, norm=norm, pbc=pbc, ret_wph_obj=True)
-            coeffs = torch.tensor(wph.get_coeffs(wph_model[i])) - torch.tensor(coeffs_ref).expand((this_batch_size,coeffs_number))
+            coeffs = wph.get_coeffs(wph_model[i])[0] - coeffs_ref
             COEFFS[computed_noise:computed_noise+this_batch_size] = coeffs
             computed_noise += this_batch_size
             del u_noisy, this_batch_size, coeffs
@@ -164,7 +164,7 @@ def objective2(x):
     #x_curr, _ = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     wph = wph_op.apply(x_curr, norm='auto', pbc=pbc, ret_wph_obj=True)
     for i in range(len(wph_model)):
-        coeffs = wph.get_coeffs(wph_model[i])
+        coeffs = wph.get_coeffs(wph_model[i])[0]
         loss = torch.sum(torch.abs( (coeffs - coeffs_target[i]) / std[i] ) ** 2)
         loss = loss / (len(coeffs) * len(wph_model))
         loss.backward(retain_graph=True)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         coeffs_target = []
         for j in range(len(wph_model)):
             wph = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc, ret_wph_obj=True)
-            coeffs_target.append(wph.get_coeffs(wph_model[j]) - bias[j])
+            coeffs_target.append(wph.get_coeffs(wph_model[j])[0] - bias[j])
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
