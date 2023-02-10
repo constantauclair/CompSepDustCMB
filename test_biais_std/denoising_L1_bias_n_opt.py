@@ -24,7 +24,7 @@ norm="auto"
 SNR = 1
 
 n_step = 10
-iter_per_step = 30
+iter_per_step = 20
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 

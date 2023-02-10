@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoisings/denoising_L12_bias_s_n_norm.npy"
+file_name="denoisings/denoising_L12_bias_s_s_norm.npy"
 
 M, N = 256, 256
 J = 6
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     norm1 = Dust
-    norm2 = Noise_model
+    norm2 = Dust #Noise_model
     
     print("Computing stats of target image...")
     start_time = time.time()
