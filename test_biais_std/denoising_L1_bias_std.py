@@ -22,10 +22,10 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 5
+n_step1 = 1
 iter_per_step1 = 50
 
-n_step2 = 10
+n_step2 = 1
 iter_per_step2 = 50
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -210,7 +210,7 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        #result = opt.minimize(objective2, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
+        #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
         result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
