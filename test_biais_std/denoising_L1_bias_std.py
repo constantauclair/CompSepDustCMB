@@ -19,7 +19,7 @@ J = 6
 L = 4
 dn = 2
 pbc = True
-norm="auto"
+norm = None
 
 SNR = 1
 
@@ -68,26 +68,9 @@ def create_batch(n_maps, n, device, batch_size):
         for i in range(x):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
-    
-def compute_bias(x):
-    print("Computing bias...")
-    local_start_time = time.time()
-    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-    coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
-    bias = coeffs_ref * 0
-    for i in range(noise_batch.shape[0]):
-        u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
-        for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-            bias[indices] += torch.sum(coeffs_chunk - coeffs_ref[indices], axis=0) / Mn
-            del coeffs_chunk, indices
-        del u_noisy, nb_chunks
-        sys.stdout.flush() # Flush the standard output
-    print("Done ! (in {:}s)".format(time.time() - local_start_time))
-    return bias
 
 def compute_bias_std(x):
-    print("Computing bias...")
+    print("Computing bias and std...")
     local_start_time = time.time()
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
@@ -124,7 +107,7 @@ def objective(x):
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=norm, ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2)
+        loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std[indices] ) ** 2)
         loss.backward(retain_graph=True)
         loss_tot += loss.detach().cpu()
         del coeffs_chunk, indices, loss
@@ -148,7 +131,6 @@ if __name__ == "__main__":
     print("Computing stats of target image...")
     start_time = time.time()
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    true_coeffs = wph_op.apply(Dust, norm=norm, pbc=pbc)
     
     ## Minimization
     
