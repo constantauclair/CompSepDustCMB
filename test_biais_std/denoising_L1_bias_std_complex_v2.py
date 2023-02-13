@@ -263,6 +263,9 @@ if __name__ == "__main__":
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
+    wph_op.clear_normalization()
+    _, true_std = compute_complex_bias_std(torch.from_numpy(Dust),None)
+    
     if file_name is not None:
         np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde,std],allow_pickle=True)
         
