@@ -264,5 +264,5 @@ if __name__ == "__main__":
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde,std])
+        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde,std],allow_pickle=True)
         
