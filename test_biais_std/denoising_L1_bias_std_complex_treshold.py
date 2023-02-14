@@ -174,7 +174,7 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
         #kept_coeffs = torch.where(torch.logical_and(relevant_imaginary_coeffs[indices]==1,std[1][indices]>0))
-        loss = torch.sum(torch.abs(torch.where(relevant_imaginary_coeffs[indices]==1,(torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices],torch.zeros(1).type(dtype=coeffs_chunk.type())) ** 2))
+        loss = torch.sum(torch.abs(torch.where(relevant_imaginary_coeffs[indices]==1,(torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices],coeffs_chunk*0) ** 2))
         loss = loss / torch.sum(relevant_imaginary_coeffs[indices])
         loss.backward(retain_graph=True)
         loss_tot_imag += loss.detach().cpu()
