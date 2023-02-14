@@ -164,7 +164,7 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
-        #print(relevant_imaginary_coeffs[indices]/std[1][indices])
+        print(relevant_imaginary_coeffs[indices]/std[1][indices])
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices] ) ** 2)
         loss_real = loss_real / len(indices)
         loss_imag = loss_imag / len(indices)
@@ -233,6 +233,7 @@ if __name__ == "__main__":
     wph = wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc,ret_wph_obj=True)
     L_number = len(wph.get_coeffs("L"))
     relevant_imaginary_coeffs[-L_number:] = 0
+    print(L_number)
     
     Dust_tilde = Dust_tilde0
     
