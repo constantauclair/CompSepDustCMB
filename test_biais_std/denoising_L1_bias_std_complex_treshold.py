@@ -225,11 +225,14 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     
     wph_op.clear_normalization()
     coeffs_imag = torch.imag(wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc))
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
+    wph = wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc,ret_wph_obj=True)
+    L_number = len(wph.get_coeffs("L"))
+    relevant_imaginary_coeffs[-L_number:] = 0
     
     Dust_tilde = Dust_tilde0
     
