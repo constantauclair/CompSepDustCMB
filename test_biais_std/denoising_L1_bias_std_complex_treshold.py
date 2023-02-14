@@ -157,20 +157,25 @@ def objective2(x):
     # Reshape x
     x_curr = x.reshape((M, N))
     
-    # Compute the loss (real part)
+    # Compute the loss
     loss_tot_real = torch.zeros(1)
+    loss_tot_imag = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
-        loss = loss / len(indices)
-        loss.backward(retain_graph=True)
-        loss_tot_real += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) / std[1][indices] ) ** 2)
+        loss_real = loss_real / len(indices)
+        loss_imag = loss_imag / len(indices)
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        loss_tot_real += loss_real.detach().cpu()
+        loss_tot_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
         
     # Compute the loss (imaginary part)
-    loss_tot_imag = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    # loss_tot_imag = torch.zeros(1)
+    # x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     # for i in range(nb_chunks):
     #     coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
     #     kept_coeffs = torch.where(relevant_imaginary_coeffs[indices]==1)
