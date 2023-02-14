@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_final_L1_norm=None.npy"
+file_name="denoising_final_L1.npy"
 
 M, N = 256, 256
 J = 6
@@ -167,7 +167,7 @@ def objective2(x):
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
-        loss_imag = loss_imag / len(indices)
+        loss_imag = loss_imag / torch.sum(torch.where(kept_coeffs>0,1,0))
         loss_real.backward(retain_graph=True)
         loss_imag.backward(retain_graph=True)
         loss_tot_real += loss_real.detach().cpu()
