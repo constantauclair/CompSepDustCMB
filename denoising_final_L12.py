@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_final_L1_norm=None.npy"
+file_name="denoising_final_L1.npy"
 
 M, N = 256, 256
 J = 6
@@ -162,7 +162,7 @@ def objective2(x):
     loss_tot_imag = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     
     wph_op.clear_normalization()
-    coeffs_imag = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
+    coeffs_imag = torch.imag(wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc))
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     Dust_tilde = Dust_tilde0
@@ -240,10 +240,10 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        bias, std = compute_complex_bias_std(Dust_tilde,None)
+        bias, std = compute_complex_bias_std(Dust_tilde,'auto')
         
         # Coeffs target computation
-        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
+        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm='auto', pbc=pbc)
         coeffs_target = [torch.real(coeffs_d) - bias[0],torch.imag(coeffs_d) - bias[1]] # estimation of the unbiased coefficients
         
         # Minimization
