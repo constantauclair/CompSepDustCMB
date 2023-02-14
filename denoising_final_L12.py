@@ -221,12 +221,12 @@ def objective2(x):
     
     loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
     
-    print("L = "+str(round(loss_tot.item(),3)))
+    print("                                                 L = "+str(round(loss_tot.item(),3)))
     print("L1 real = "+str(round(loss_tot_1_real.item(),3)))
     print("L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
     print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
     print("L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
-    print("computed in "+str(round(time.time() - start_time,3))+"s) \n")
+    print("(computed in "+str(round(time.time() - start_time,3))+"s) \n")
 
     eval_cnt += 1
     return loss_tot.item(), x_grad.ravel()
@@ -280,6 +280,7 @@ if __name__ == "__main__":
     
     # Computation of the noise coeffs std
     mean_noise, std_noise = compute_complex_mean_std_noise()
+    print(torch.mean((mean_noise[0]-torch.real(wph_op.apply(torch.from_numpy(Noise).to(device),norm=None,pbc=pbc)))/std_noise[0]))
     
     Dust_tilde = Dust_tilde0
     
