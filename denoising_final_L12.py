@@ -265,7 +265,7 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        bias, std = compute_complex_bias_std(Dust_tilde,None)
+        bias, std = compute_complex_bias_std(Dust_tilde)
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
