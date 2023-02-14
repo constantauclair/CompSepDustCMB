@@ -180,18 +180,16 @@ def objective2(x):
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - x_curr, i, norm=None, ret_indices=True, pbc=pbc)
-        #loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) ) ** 2)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         #kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
-        kept_coeffs = relevant_imaginary_coeffs[indices]
-        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
+        #loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
-        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        #loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
         loss_real.backward(retain_graph=True)
-        loss_imag.backward(retain_graph=True)
+        #loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
-        loss_tot_2_imag += loss_imag.detach().cpu()
-        del coeffs_chunk, indices, loss_real, loss_imag
+        #loss_tot_2_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real#, loss_imag
     
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
