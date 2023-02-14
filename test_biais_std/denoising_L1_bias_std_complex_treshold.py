@@ -171,14 +171,14 @@ def objective2(x):
     # Compute the loss (imaginary part)
     loss_tot_imag = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
-        kept_coeffs = torch.where(relevant_imaginary_coeffs[indices]==1)
-        loss = torch.sum(torch.abs( (torch.imag(coeffs_chunk)[kept_coeffs] - coeffs_target[1][indices][kept_coeffs]) / std[1][indices][kept_coeffs] ) ** 2)
-        loss = loss / torch.sum(relevant_imaginary_coeffs[indices])
-        loss.backward(retain_graph=True)
-        loss_tot_imag += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(x_curr, i, norm='auto', ret_indices=True, pbc=pbc)
+    #     kept_coeffs = torch.where(relevant_imaginary_coeffs[indices]==1)
+    #     loss = torch.sum(torch.abs( (torch.imag(coeffs_chunk)[kept_coeffs] - coeffs_target[1][indices][kept_coeffs]) / std[1][indices][kept_coeffs] ) ** 2)
+    #     loss = loss / torch.sum(relevant_imaginary_coeffs[indices])
+    #     loss.backward(retain_graph=True)
+    #     loss_tot_imag += loss.detach().cpu()
+    #     del coeffs_chunk, indices, loss
     
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
