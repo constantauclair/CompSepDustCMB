@@ -136,7 +136,7 @@ def compute_complex_mean_std_noise():
         n_preconf, nb_chunks = wph_op.preconfigure(noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(n_preconf, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=batch_COEFFS[:,indices].type())
             del coeffs_chunk, indices
         COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
         computed_noise += this_batch_size
