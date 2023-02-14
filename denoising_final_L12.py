@@ -97,11 +97,11 @@ def compute_bias_std(x,norm):
     print("Done ! (in {:}s)".format(time.time() - local_start_time))
     return bias, std
 
-def compute_complex_bias_std(x,norm):
+def compute_complex_bias_std(x):
     print("Computing bias and std...")
     local_start_time = time.time()
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-    coeffs_ref = wph_op.apply(x, norm=norm, pbc=pbc)
+    coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_noise = 0
@@ -110,7 +110,7 @@ def compute_complex_bias_std(x,norm):
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
             del coeffs_chunk, indices
         COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
@@ -121,31 +121,6 @@ def compute_complex_bias_std(x,norm):
     std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
     print("Done ! (in {:}s)".format(time.time() - local_start_time))
     return bias, std
-
-def compute_complex_mean_std_noise():
-    print("Computing bias and std...")
-    local_start_time = time.time()
-    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-    coeffs_ref = wph_op.apply(torch.from_numpy(Noise_syn[0]).to(device), norm=None, pbc=pbc)
-    coeffs_number = len(coeffs_ref)
-    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
-    computed_noise = 0
-    for i in range(noise_batch.shape[0]):
-        this_batch_size = len(noise_batch[i])
-        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        n_preconf, nb_chunks = wph_op.preconfigure(noise_batch[i], pbc=pbc)
-        for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(n_preconf, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=batch_COEFFS[:,indices].type())
-            del coeffs_chunk, indices
-        COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
-        computed_noise += this_batch_size
-        del n_preconf, nb_chunks, batch_COEFFS, this_batch_size
-        sys.stdout.flush() # Flush the standard output
-    mean = [torch.mean(torch.real(COEFFS),axis=0),torch.mean(torch.imag(COEFFS),axis=0)]
-    std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
-    print("Done ! (in {:}s)".format(time.time() - local_start_time))
-    return mean, std
 
 def objective1(x):
     global eval_cnt
@@ -279,10 +254,7 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
-    mean_noise, std_noise = compute_complex_mean_std_noise()
-    print(mean_noise[0])
-    print(torch.real(wph_op.apply(torch.from_numpy(Noise).to(device),norm=None,pbc=pbc)))
-    print(std_noise[0])
+    mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()))
     
     Dust_tilde = Dust_tilde0
     
