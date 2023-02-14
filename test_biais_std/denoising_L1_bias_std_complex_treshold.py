@@ -230,7 +230,7 @@ if __name__ == "__main__":
     wph_op.clear_normalization()
     coeffs_imag = torch.imag(wph_op.apply(Dust_tilde0,norm='auto',pbc=pbc))
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
-    relevant_imaginary_coeffs[-9:] = 0
+    #relevant_imaginary_coeffs[-9:] = 0
     
     Dust_tilde = Dust_tilde0
     
