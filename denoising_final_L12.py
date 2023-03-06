@@ -283,7 +283,7 @@ if __name__ == "__main__":
     #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
     #mean_noise, std_noise = compute_complex_bias_std_noise()
     mean_noise = [torch.real(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc)),torch.imag(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc))]
-    std_noise = mean_noise*0+1
+    std_noise = [torch.real(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc))*0+1,torch.imag(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc))*0+1]
     
     Dust_tilde = Dust_tilde0
     
