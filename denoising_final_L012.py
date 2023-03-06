@@ -186,8 +186,8 @@ def objective2(x):
     
     # Compute the loss 0
     loss_tot_0 = torch.zeros(1)
-    #loss = torch.sum( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2) / (M*N)
-    loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
+    loss = torch.sum( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2) / (M*N)
+    #loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
     loss.backward(retain_graph=True)
     loss_tot_0 += loss.detach().cpu()
     del loss
