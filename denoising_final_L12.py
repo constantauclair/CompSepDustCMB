@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 5
+n_step1 = 1#5
 iter_per_step1 = 50
 
 n_step2 = 10
