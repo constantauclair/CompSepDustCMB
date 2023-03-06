@@ -185,19 +185,19 @@ def objective2(x):
     # Compute the loss 1
     loss_tot_1_real = torch.zeros(1)
     loss_tot_1_imag = torch.zeros(1)
-    # x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    # for i in range(nb_chunks):
-    #     coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
-    #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
-    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
-    #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
-    #     loss_real = loss_real / len(indices)
-    #     loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
-    #     loss_real.backward(retain_graph=True)
-    #     loss_imag.backward(retain_graph=True)
-    #     loss_tot_1_real += loss_real.detach().cpu()
-    #     loss_tot_1_imag += loss_imag.detach().cpu()
-    #     del coeffs_chunk, indices, loss_real, loss_imag
+    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / len(indices)
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        loss_tot_1_real += loss_real.detach().cpu()
+        loss_tot_1_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
         
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
@@ -206,14 +206,14 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - x_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-        #kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
-        #loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
-        #loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
         loss_real.backward(retain_graph=True)
-        #loss_imag.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
-        #loss_tot_2_imag += loss_imag.detach().cpu()
+        loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real#, loss_imag
     
     # Reshape the gradient
@@ -223,10 +223,11 @@ def objective2(x):
     
     print("L = "+str(round(loss_tot.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
-    print("                      L1 real = "+str(round(loss_tot_1_real.item(),3)))
-    print("                      L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
-    print("                      L2 real = "+str(round(loss_tot_2_real.item(),3)))
-    print("                      L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
+    print("L1 real = "+str(round(loss_tot_1_real.item(),3)))
+    print("L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
+    print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
+    print("L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
+    print("")
 
     eval_cnt += 1
     return loss_tot.item(), x_grad.ravel()
@@ -279,10 +280,10 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
-    #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
-    mean_noise, std_noise = compute_complex_bias_std_noise()
+    mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
+    #mean_noise, std_noise = compute_complex_bias_std_noise()
     
-    Dust_tilde = Mixture #Dust_tilde0
+    Dust_tilde = Dust_tilde0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step2):
