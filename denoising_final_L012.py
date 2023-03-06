@@ -186,10 +186,11 @@ def objective2(x):
     
     # Compute the loss 0
     loss_tot_0 = torch.zeros(1)
-    # loss = torch.sum( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2) / (M*N)
-    # loss.backward(retain_graph=True)
-    # loss_tot_0 += loss.detach().cpu()
-    # del loss
+    #loss = torch.sum( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2) / (M*N)
+    loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
+    loss.backward(retain_graph=True)
+    loss_tot_0 += loss.detach().cpu()
+    del loss
     
     # Compute the loss 1
     loss_tot_1_real = torch.zeros(1)
@@ -223,7 +224,7 @@ def objective2(x):
         loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
         loss_tot_2_imag += loss_imag.detach().cpu()
-        del coeffs_chunk, indices, loss_real#, loss_imag
+        del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
     x_grad = curr_maps.grad.cpu().numpy().astype(x.dtype)
