@@ -22,8 +22,8 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 1#5
-iter_per_step1 = 50
+n_step1 = 3
+iter_per_step1 = 100
 
 n_step2 = 10
 iter_per_step2 = 100#20
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0,Mixture*0])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0+np.mean(Mixture)-np.mean(Noise),Mixture*0+np.mean(Noise)])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
