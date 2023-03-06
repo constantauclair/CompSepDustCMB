@@ -180,7 +180,7 @@ def objective2(x):
     start_time = time.time()
     
     # Reshape x
-    curr_maps = x.reshape((2, M, N)).requires_grad_()
+    curr_maps = torch.from_numpy(x.reshape((2, M, N))).requires_grad_()
     dust_curr = curr_maps[0]
     noise_curr = curr_maps[1]
     
