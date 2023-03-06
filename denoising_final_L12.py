@@ -26,7 +26,7 @@ n_step1 = 1#5
 iter_per_step1 = 50
 
 n_step2 = 1#10
-iter_per_step2 = 1000#20
+iter_per_step2 = 100#20
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -203,7 +203,8 @@ def objective2(x):
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    n_curr = torch.from_numpy(Mixture).to(device) - x_curr
+    #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
+    n_curr = torch.from_numpy(Mixture).to(device)*0 - x_curr
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
