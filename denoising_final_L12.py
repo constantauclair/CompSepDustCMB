@@ -26,7 +26,7 @@ n_step1 = 1#5
 iter_per_step1 = 50
 
 n_step2 = 1#10
-iter_per_step2 = 100#20
+iter_per_step2 = 1000#20
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
