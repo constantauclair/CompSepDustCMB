@@ -282,7 +282,7 @@ if __name__ == "__main__":
     #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
     mean_noise, std_noise = compute_complex_bias_std_noise()
     
-    Dust_tilde = Dust_tilde0
+    Dust_tilde = Mixture #Dust_tilde0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step2):
