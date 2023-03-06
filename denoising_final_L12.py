@@ -206,8 +206,8 @@ def objective2(x):
     n_curr = torch.from_numpy(Mixture).to(device) - x_curr
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=None, ret_indices=True, pbc=pbc)
-        #loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-        loss_real = torch.sum(torch.abs( torch.real(coeffs_chunk) - torch.real(coeffs_target_noise)[indices] ) ** 2)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
+        #loss_real = torch.sum(torch.abs( torch.real(coeffs_chunk) - torch.real(coeffs_target_noise)[indices] ) ** 2)
         #kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
         #loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
@@ -282,9 +282,9 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
-    #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
+    mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
     #mean_noise, std_noise = compute_complex_bias_std_noise()
-    coeffs_target_noise = wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc)
+    #coeffs_target_noise = wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc)
     
     Dust_tilde = Dust_tilde0
     
