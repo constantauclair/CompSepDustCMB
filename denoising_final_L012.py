@@ -25,7 +25,7 @@ SNR = 1
 n_step1 = 1#5
 iter_per_step1 = 50
 
-n_step2 = 10
+n_step2 = 1#10
 iter_per_step2 = 100#20
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -186,7 +186,7 @@ def objective2(x):
     
     # Compute the loss 0
     loss_tot_0 = torch.zeros(1)
-    loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
+    loss = torch.sum( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2) / (M*N)
     loss.backward(retain_graph=True)
     loss_tot_0 += loss.detach().cpu()
     del loss
@@ -311,7 +311,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture,Mixture*0])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0+np.mean(Dust),Mixture*0])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
