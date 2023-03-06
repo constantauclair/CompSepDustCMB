@@ -25,8 +25,8 @@ SNR = 1
 n_step1 = 1#5
 iter_per_step1 = 50
 
-n_step2 = 10
-iter_per_step2 = 20
+n_step2 = 1
+iter_per_step2 = 100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -207,15 +207,14 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-        #loss_real = torch.sum(torch.abs( torch.real(coeffs_chunk) - torch.real(coeffs_target_noise)[indices] ) ** 2)
-        #kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
-        #loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
-        #loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
         loss_real.backward(retain_graph=True)
-        #loss_imag.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
-        #loss_tot_2_imag += loss_imag.detach().cpu()
+        loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real#, loss_imag
     
     # Reshape the gradient
@@ -227,8 +226,8 @@ def objective2(x):
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
     print("L1 real = "+str(round(loss_tot_1_real.item(),3)))
     print("L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
-    print("L2 real = "+str(round(loss_tot_2_real.item(),5)))
-    print("L2 imag = "+str(round(loss_tot_2_imag.item(),5)))
+    print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
+    print("L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
     print("")
 
     eval_cnt += 1
