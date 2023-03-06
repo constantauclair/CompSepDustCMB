@@ -280,8 +280,10 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
-    mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
+    #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
     #mean_noise, std_noise = compute_complex_bias_std_noise()
+    mean_noise = [torch.real(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc)),torch.imag(wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc))]
+    std_noise = mean_noise*0+1
     
     Dust_tilde = Dust_tilde0
     
