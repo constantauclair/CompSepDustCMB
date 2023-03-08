@@ -202,11 +202,11 @@ def objective2(x):
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
+    x_curr = x_curr/10
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
-    n_curr = x_curr/10
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
