@@ -133,7 +133,7 @@ def compute_complex_bias_std_noise():
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i]*10, pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -204,7 +204,7 @@ def objective2(x):
     loss_tot_2_imag = torch.zeros(1)
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
-    n_curr = x_curr
+    n_curr = x_curr/10
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
