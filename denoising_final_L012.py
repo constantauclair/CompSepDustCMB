@@ -186,8 +186,8 @@ def objective2(x):
     
     # Compute the loss 0
     loss_tot_0 = torch.zeros(1)
-    loss = torch.mean( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2)
-    #loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
+    #loss = torch.mean( torch.abs( (torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr)) / (0.1*torch.from_numpy(Mixture).to(device)) )**2)
+    loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
     loss.backward(retain_graph=True)
     loss_tot_0 += loss.detach().cpu()
     del loss
@@ -312,8 +312,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        #result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0+np.mean(Mixture)-np.mean(Noise),Mixture*0+np.mean(Noise)])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture,Mixture*0])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0+np.mean(Mixture)-np.mean(Noise),Mixture*0+np.mean(Noise)])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping

@@ -12,7 +12,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_final_L12.npy"
+file_name="denoising_final_L012.npy"
 
 M, N = 256, 256
 J = 6
@@ -25,7 +25,7 @@ SNR = 1
 n_step1 = 1#5
 iter_per_step1 = 50
 
-n_step2 = 1#10
+n_step2 = 10
 iter_per_step2 = 100#20
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -133,7 +133,7 @@ def compute_complex_bias_std_noise():
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i]+10, pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -180,33 +180,40 @@ def objective2(x):
     start_time = time.time()
     
     # Reshape x
-    x_curr = x.reshape((M, N))
+    curr_maps = torch.from_numpy(x.reshape((2, M, N))).to(device).requires_grad_()
+    dust_curr = curr_maps[0]
+    noise_curr = curr_maps[1]
+    
+    # Compute the loss 0
+    loss_tot_0 = torch.zeros(1)
+    loss = torch.sum( torch.abs( torch.from_numpy(Mixture).to(device) - (dust_curr+noise_curr) )**2)
+    loss.backward(retain_graph=True)
+    loss_tot_0 += loss.detach().cpu()
+    del loss
     
     # Compute the loss 1
     loss_tot_1_real = torch.zeros(1)
     loss_tot_1_imag = torch.zeros(1)
-    # x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    # for i in range(nb_chunks):
-    #     coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
-    #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
-    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
-    #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
-    #     loss_real = loss_real / len(indices)
-    #     loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
-    #     loss_real.backward(retain_graph=True)
-    #     loss_imag.backward(retain_graph=True)
-    #     loss_tot_1_real += loss_real.detach().cpu()
-    #     loss_tot_1_imag += loss_imag.detach().cpu()
-    #     del coeffs_chunk, indices, loss_real, loss_imag
+    dust_curr, nb_chunks = wph_op.preconfigure(dust_curr, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(dust_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / len(indices)
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        loss_tot_1_real += loss_real.detach().cpu()
+        loss_tot_1_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
         
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
-    n_curr = x_curr
+    noise_curr, nb_chunks = wph_op.preconfigure(noise_curr, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(n_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(noise_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
@@ -219,12 +226,13 @@ def objective2(x):
         del coeffs_chunk, indices, loss_real#, loss_imag
     
     # Reshape the gradient
-    x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
+    x_grad = curr_maps.grad.cpu().numpy().astype(x.dtype)
     
-    loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
+    loss_tot = loss_tot_0 + loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
     
     print("L = "+str(round(loss_tot.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+    print("L0 = "+str(round(loss_tot_0.item(),3)))
     print("L1 real = "+str(round(loss_tot_1_real.item(),3)))
     print("L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
     print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
@@ -282,10 +290,11 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
-    #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
-    mean_noise, std_noise = compute_complex_bias_std_noise()
+    mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
+    #mean_noise, std_noise = compute_complex_bias_std_noise()
+    #coeffs_target_noise = wph_op.apply(torch.from_numpy(Noise), norm=None, pbc=pbc)
     
-    Dust_tilde = Dust_tilde0
+    Dust_tilde = np.array([Dust_tilde0,Dust_tilde0*0])
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step2):
@@ -294,7 +303,7 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        bias, std = compute_complex_bias_std(Dust_tilde)
+        bias, std = compute_complex_bias_std(Dust_tilde[0])
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
@@ -302,16 +311,16 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Mixture*0+np.mean(Dust),Mixture*0])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
-        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        Dust_tilde = Dust_tilde.reshape((2, M, N)).astype(np.float32)
         
     ## Output
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde])
+        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde[0],Dust_tilde[1]])
         
