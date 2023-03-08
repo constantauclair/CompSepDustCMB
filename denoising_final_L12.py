@@ -265,7 +265,7 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
-        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective1, torch.from_numpy(Mixture).cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
