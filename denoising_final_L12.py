@@ -205,7 +205,7 @@ def objective2(x):
     #x_curr = Mixture - x_curr
     x_curr = 10*x_curr
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    x_curr = x_curr - 100
+    x_curr = x_curr - torch.tensor(100)
     #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
