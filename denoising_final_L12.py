@@ -202,8 +202,8 @@ def objective2(x):
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
-    x_curr = Mixture - x_curr
-    #x_curr = x_curr/10
+    #x_curr = Mixture - x_curr
+    x_curr = x_curr/10
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
     #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
     for i in range(nb_chunks):
