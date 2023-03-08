@@ -133,7 +133,7 @@ def compute_complex_bias_std_noise():
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i]+10, pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i]*10, pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
