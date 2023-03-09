@@ -192,7 +192,7 @@ def objective2(x):
     # for i in range(nb_chunks):
     #     coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
     #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
-    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std[1][indices],nan=0)
+    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std[1][indices],nan=0)
     #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
     #     loss_real = loss_real / len(indices)
     #     loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
@@ -212,9 +212,9 @@ def objective2(x):
         print("real mean =",mean_noise[0][indices])
         print("real std  =",std_noise[0][indices])
         print("imag mean =",mean_noise[1][indices])
-        print("real std  =",std_noise[1][indices])
+        print("imag std  =",std_noise[1][indices])
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices)
         loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
@@ -284,8 +284,10 @@ if __name__ == "__main__":
     # Identification of the irrelevant imaginary parts of the coeffs
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     wph_op.clear_normalization()
-    coeffs_imag = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
-    relevant_imaginary_coeffs = torch.where(torch.abs(coeffs_imag) > 1e-6,1,0)
+    coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
+    relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
+    coeffs_imag_noise = torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))
+    relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_noise) > 1e-6,1,0)
     
     # Computation of the noise coeffs std
     #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
