@@ -291,7 +291,9 @@ if __name__ == "__main__":
     
     # Computation of the noise coeffs std
     #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
-    mean_noise, std_noise = compute_complex_bias_std_noise()
+    #mean_noise, std_noise = compute_complex_bias_std_noise()
+    mean_noise = [torch.real(wph_op.apply(Noise,norm=None,pbc=pbc)),torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))]
+    std_noise = [mean_noise[0]*0+1,mean_noise[1]*0+1]
     
     Dust_tilde = Dust_tilde0
     
