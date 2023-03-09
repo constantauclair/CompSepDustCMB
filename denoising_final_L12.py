@@ -22,10 +22,10 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 1
+n_step1 = 5#1
 iter_per_step1 = 50
 
-n_step2 = 10
+n_step2 = 3#10
 iter_per_step2 = 50
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -56,7 +56,7 @@ Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
 Mixture = Dust + Noise
 
 #######
-# DENOISING
+# USEFUL FUNCTIONS
 #######
 
 def create_batch(n_maps, n, device, batch_size):
@@ -115,6 +115,10 @@ def compute_complex_bias_std(x):
     bias = [torch.mean(torch.real(COEFFS),axis=0),torch.mean(torch.imag(COEFFS),axis=0)]
     std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
     return bias, std
+
+#######
+# OBJECTIVE FUNCTIONS
+#######
 
 def objective1(x):
     global eval_cnt
@@ -220,6 +224,10 @@ def objective2(x):
 
     eval_cnt += 1
     return loss_tot.item(), u_grad.ravel()
+
+#######
+# MINIMIZATION
+#######
 
 if __name__ == "__main__":
     
