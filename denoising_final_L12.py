@@ -207,7 +207,7 @@ def objective2(x):
     loss_tot_2_imag = torch.zeros(1)
     u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        print(torch.mean(torch.from_numpy(Mixture).to(device)-u-torch.from_numpy(Noise).to(device)))
+        print(torch.mean(torch.abs(torch.from_numpy(Mixture).to(device)-u-torch.from_numpy(Noise).to(device))))
         coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - u, i, norm=None, ret_indices=True, pbc=pbc)
         #coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
