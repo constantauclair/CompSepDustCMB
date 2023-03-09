@@ -18,9 +18,9 @@ L = 4
 dn = 2
 pbc = True
 
-SNR = 1
+SNR = 0.5
 
-file_name="denoising_final_L12_SNR="+str(SNR)+"_nstep1=5.npy"
+file_name="denoising_final_L12_SNR=0,5.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
