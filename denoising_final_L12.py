@@ -291,9 +291,15 @@ if __name__ == "__main__":
     
     # Computation of the noise coeffs std
     #mean_noise, std_noise = compute_complex_bias_std(torch.zeros(torch.from_numpy(Mixture).size()).to(device))
-    #mean_noise, std_noise = compute_complex_bias_std_noise()
-    mean_noise = [torch.real(wph_op.apply(Noise,norm=None,pbc=pbc)),torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))]
-    std_noise = [mean_noise[0]*0+1,mean_noise[1]*0+1]
+    mean_noise, std_noise = compute_complex_bias_std_noise()
+    coeffs_noise = [torch.real(wph_op.apply(Noise,norm=None,pbc=pbc)),torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))]
+    loss_real = torch.sum(torch.abs( (coeffs_noise[0] - mean_noise[0]) / std_noise[0] ) ** 2)
+    kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_noise[1],nan=0)
+    loss_imag = torch.sum(torch.abs( (coeffs_noise[1] - mean_noise[1]) * kept_coeffs ) ** 2)
+    loss_real = loss_real / len(coeffs_noise[0])
+    loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+    print("loss real =",loss_real)
+    print("loss imag =",loss_imag)
     
     Dust_tilde = Dust_tilde0
     
