@@ -22,11 +22,11 @@ pbc = True
 
 SNR = 1
 
-n_step1 = 1#5
+n_step1 = 5
 iter_per_step1 = 50
 
-n_step2 = 1#10
-iter_per_step2 = 100#20
+n_step2 = 10
+iter_per_step2 = 50
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -97,6 +97,28 @@ def compute_bias_std(x,norm):
     print("Done ! (in {:}s)".format(time.time() - local_start_time))
     return bias, std
 
+def compute_mean_std_noise():
+    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    coeffs_ref = wph_op.apply(torch.from_numpy(Noise).to(device), norm=None, pbc=pbc)
+    coeffs_number = len(coeffs_ref)
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(noise_batch.shape[0]):
+        this_batch_size = len(noise_batch[i])
+        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        u_noisy, nb_chunks = wph_op.preconfigure(noise_batch[i], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+            batch_COEFFS[:,indices] = coeffs_chunk
+            del coeffs_chunk, indices
+        COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
+        computed_noise += this_batch_size
+        del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.mean(COEFFS,axis=0)
+    std = torch.std(COEFFS,axis=0)
+    return mean, std
+
 def compute_complex_bias_std(x):
     print("Computing bias and std...")
     local_start_time = time.time()
@@ -153,26 +175,43 @@ def objective1(x):
     start_time = time.time()
     
     # Reshape x
-    x_curr = x.reshape((M, N))
+    u = x.reshape((M, N))
     
-    # Compute the loss
-    loss_tot = torch.zeros(1)
-    x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
+    # Compute the loss 1
+    loss_tot_1 = torch.zeros(1)
+    u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std[indices] ) ** 2)
-        loss = loss / len(indices)
+        loss = loss / len(coeffs_target)
         loss.backward(retain_graph=True)
-        loss_tot += loss.detach().cpu()
+        loss_tot_1 += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+        
+    # Compute the loss 2
+    loss_tot_2 = torch.zeros(1)
+    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
+        loss = torch.sum(torch.abs( (coeffs_chunk - mean_noise[indices]) / std_noise[indices] ) ** 2)
+        loss = loss / len(mean_noise)
+        loss.backward(retain_graph=True)
+        loss_tot_2 += loss.detach().cpu()
         del coeffs_chunk, indices, loss
     
     # Reshape the gradient
-    x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
+    u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    print(f"Loss: {loss_tot.item()} (computed in {time.time() - start_time}s)")
-
+    loss_tot = loss_tot_1 + loss_tot_2
+    
+    print("L = "+str(round(loss_tot.item(),3)))
+    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+    print("L1 = "+str(round(loss_tot_1.item(),3)))
+    print("L2 = "+str(round(loss_tot_2.item(),3)))
+    print("")
+    
     eval_cnt += 1
-    return loss_tot.item(), x_grad.ravel()
+    return loss_tot.item(), u_grad.ravel()
 
 def objective2(x):
     global eval_cnt
@@ -262,6 +301,7 @@ if __name__ == "__main__":
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
+        mean_noise, std_noise = compute_mean_std_noise() # computation of the noise coeffs
         
         # Minimization
         #result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
