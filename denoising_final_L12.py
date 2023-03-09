@@ -220,7 +220,7 @@ def objective2(x):
         del coeffs_chunk, indices, loss_real#, loss_imag
     
     # Reshape the gradient
-    x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
+    x_grad = u.grad.cpu().numpy().astype(x.dtype)
     
     loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
     
