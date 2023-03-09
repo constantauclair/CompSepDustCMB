@@ -215,14 +215,14 @@ def objective2(x):
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / real_coeffs_number_noise
         loss_imag = loss_imag / imag_coeffs_number_noise
-        loss_real.backward(retain_graph=True)
-        loss_imag.backward(retain_graph=True)
+        #loss_real.backward(retain_graph=True)
+        #loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
         loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
-    u_grad = u.grad.cpu().numpy().astype(x.dtype)
+    #u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
     loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
     
