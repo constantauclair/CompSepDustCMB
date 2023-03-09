@@ -350,7 +350,7 @@ if __name__ == "__main__":
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         #result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(Noise).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(Mixture-Noise).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
