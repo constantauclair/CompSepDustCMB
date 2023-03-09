@@ -137,14 +137,14 @@ def objective1(x):
         
     # Compute the loss 2
     loss_tot_2 = torch.zeros(1)
-    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs( (coeffs_chunk - mean_noise[indices]) / std_noise[indices] ) ** 2)
-        loss = loss / len(mean_noise)
-        loss.backward(retain_graph=True)
-        loss_tot_2 += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
+    # u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
+    #     loss = torch.sum(torch.abs( (coeffs_chunk - mean_noise[indices]) / std_noise[indices] ) ** 2)
+    #     loss = loss / len(mean_noise)
+    #     loss.backward(retain_graph=True)
+    #     loss_tot_2 += loss.detach().cpu()
+    #     del coeffs_chunk, indices, loss
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
