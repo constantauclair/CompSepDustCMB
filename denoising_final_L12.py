@@ -203,11 +203,10 @@ def objective2(x):
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
     #x_curr = Mixture - x_curr
-    x_curr = 10*x_curr
+    #x_curr = 10*x_curr
     x_curr, nb_chunks = wph_op.preconfigure(x_curr, requires_grad=True, pbc=pbc)
-    #n_curr = torch.from_numpy(Mixture).to(device) - x_curr
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - x_curr, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
@@ -303,8 +302,8 @@ if __name__ == "__main__":
         
         # Minimization
         #result = opt.minimize(objective2, Dust_tilde.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        #result = opt.minimize(objective2, torch.zeros(torch.from_numpy(Mixture).size()).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        #result = opt.minimize(objective2, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.zeros(torch.from_numpy(Mixture).size()).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
