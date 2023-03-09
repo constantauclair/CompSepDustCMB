@@ -205,26 +205,22 @@ def objective2(x):
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
-    #u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
-    Noise_preconf, nb_chunks = wph_op.preconfigure(torch.from_numpy(Noise).to(device), requires_grad=True, pbc=pbc)
+    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        #print(torch.mean(torch.abs(torch.from_numpy(Mixture).to(device)-u-torch.from_numpy(Noise).to(device))))
-        #coeffs_chunk, indices = wph_op.apply(torch.from_numpy(Mixture).to(device) - u, i, norm=None, ret_indices=True, pbc=pbc)
-        coeffs_chunk, indices = wph_op.apply(Noise_preconf, i, norm=None, ret_indices=True, pbc=pbc)
-        #coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / real_coeffs_number_noise
         loss_imag = loss_imag / imag_coeffs_number_noise
-        #loss_real.backward(retain_graph=True)
-        #loss_imag.backward(retain_graph=True)
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
         loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
-    #u_grad = u.grad.cpu().numpy().astype(x.dtype)
+    u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
     loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
     
