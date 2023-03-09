@@ -33,7 +33,7 @@ optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxco
 
 device = 0 # GPU to use
 
-Mn = 100 # Number of noises per iteration
+Mn = 200 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
 
@@ -41,7 +41,7 @@ n_batch = int(Mn/batch_size)
 
 Dust = np.load('data/I_maps_v2_leo.npy')[0,0][::2,::2]
 
-Noise = np.load('data/BICEP_noise_QiU_217GHZ.npy')[1].real
+Noise = np.load('data/BICEP_noise_QiU_217GHZ.npy')[0].real
 
 Noise_syn = np.load('data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
