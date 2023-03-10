@@ -201,7 +201,6 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
         # Loss F1
-        print(std[1,0][indices])
         loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target[0,0][indices]) / std[0,0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std[1,0][indices],nan=0)
         loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target[1,0][indices]) * kept_coeffs ) ** 2)
@@ -291,7 +290,7 @@ if __name__ == "__main__":
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
-    print("Starting first step of minimization (only S11)...")
+    print("Starting first minimization (only S11)...")
     
     eval_cnt = 0
     
@@ -299,6 +298,8 @@ if __name__ == "__main__":
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step1):
+        
+        print("Starting era "+str(i+1)+"...")
         
         # Initialization of the map
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
@@ -316,6 +317,8 @@ if __name__ == "__main__":
         
         # Reshaping
         Dust_tilde0 = Dust_tilde0.reshape((n_freq, M, N)).astype(np.float32)
+        
+        print("Era "+str(i+1)+" done !")
         
     ## Second minimization
     print("Starting second step of minimization (all coeffs)...")
@@ -347,6 +350,8 @@ if __name__ == "__main__":
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step2):
         
+        print("Starting era "+str(i+1)+"...")
+        
         # Initialization of the map
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
@@ -363,6 +368,8 @@ if __name__ == "__main__":
         
         # Reshaping
         Dust_tilde = Dust_tilde.reshape((n_freq, M, N)).astype(np.float32)
+        
+        print("Era "+str(i+1)+" done !")
         
     ## Output
     
