@@ -17,12 +17,12 @@ n_freq = 2
 M, N = 256, 256
 J = 6
 L = 4
-dn = 2
+dn = 3
 pbc = True
 
 SNR = 1
 
-file_name="denoising_multifreq_L12_SNR=1.npy"
+file_name="denoising_multifreq_L12_SNR=1_dn=3.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
