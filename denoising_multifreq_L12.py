@@ -103,7 +103,7 @@ def compute_bias_std(x):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
                 batch_COEFFS[freq,:,indices] = coeffs_chunk - coeffs_ref[freq,indices]
                 del coeffs_chunk, indices
-            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS
+            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
         computed_noise += this_batch_size
         del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
         sys.stdout.flush() # Flush the standard output
@@ -126,7 +126,7 @@ def compute_complex_bias_std(x):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
                 batch_COEFFS[freq,:,indices] = coeffs_chunk - coeffs_ref[freq,indices]
                 del coeffs_chunk, indices
-            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS
+            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
         computed_noise += this_batch_size
         del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
         sys.stdout.flush() # Flush the standard output
