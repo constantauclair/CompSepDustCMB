@@ -130,8 +130,8 @@ def compute_complex_bias_std(x):
         computed_noise += this_batch_size
         del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
         sys.stdout.flush() # Flush the standard output
-    bias = [torch.mean(torch.real(COEFFS),axis=1),torch.mean(torch.imag(COEFFS),axis=1)]
-    std = [torch.std(torch.real(COEFFS),axis=1),torch.std(torch.imag(COEFFS),axis=1)]
+    bias = torch.tensor([torch.mean(torch.real(COEFFS),axis=1),torch.mean(torch.imag(COEFFS),axis=1)])
+    std = torch.tensor([torch.std(torch.real(COEFFS),axis=1),torch.std(torch.imag(COEFFS),axis=1)])
     return bias, std
 
 #######
