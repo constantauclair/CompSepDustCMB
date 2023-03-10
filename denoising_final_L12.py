@@ -20,7 +20,7 @@ pbc = True
 
 SNR = 1
 
-file_name="denoising_final_L12_SNR=1_bis.npy"
+file_name="denoising_final_L12_SNR=1_ter.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -184,8 +184,8 @@ def objective2(x):
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target[0][indices]) / std[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target[1][indices]) * kept_coeffs ) ** 2)
-        loss_real = loss_real / real_coeffs_number_dust #len(indices)
-        loss_imag = loss_imag / imag_coeffs_number_dust #torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0)))
+        loss_real = loss_real / len(indices) #real_coeffs_number_dust
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_dust
         loss_real.backward(retain_graph=True)
         loss_imag.backward(retain_graph=True)
         loss_tot_1_real += loss_real.detach().cpu()
@@ -201,8 +201,8 @@ def objective2(x):
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
-        loss_real = loss_real / real_coeffs_number_noise
-        loss_imag = loss_imag / imag_coeffs_number_noise
+        loss_real = loss_real / len(indices) #real_coeffs_number_noise
+        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_noise
         loss_real.backward(retain_graph=True)
         loss_imag.backward(retain_graph=True)
         loss_tot_2_real += loss_real.detach().cpu()
