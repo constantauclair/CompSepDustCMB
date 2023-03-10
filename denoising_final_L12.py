@@ -20,7 +20,7 @@ pbc = True
 
 SNR = 1
 
-file_name="denoising_final_L12_SNR=1_final.npy"
+file_name="denoising_final_L12_SNR=1.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
