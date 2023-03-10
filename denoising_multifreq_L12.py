@@ -311,7 +311,7 @@ if __name__ == "__main__":
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
-        Dust_tilde0 = Dust_tilde0.reshape((M, N)).astype(np.float32)
+        Dust_tilde0 = Dust_tilde0.reshape((n_freq, M, N)).astype(np.float32)
         
     ## Second minimization
     print("Starting second step of minimization (all coeffs)...")
@@ -358,7 +358,7 @@ if __name__ == "__main__":
         final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
-        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        Dust_tilde = Dust_tilde.reshape((n_freq, M, N)).astype(np.float32)
         
     ## Output
     
