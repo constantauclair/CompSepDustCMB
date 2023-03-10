@@ -200,7 +200,6 @@ def objective2(x):
     u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-        print(indices)
         # Loss F1
         loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target[0,0][indices]) / std[0,0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std[0,1][indices],nan=0)
@@ -233,7 +232,6 @@ def objective2(x):
     u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
-        print(indices)
         # Loss F1
         loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - mean_noise[0,0][indices]) / std_noise[0,0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[0,1][indices],nan=0)
@@ -356,7 +354,7 @@ if __name__ == "__main__":
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
-        coeffs_target = [torch.real(coeffs_d) - bias[:,0],torch.imag(coeffs_d) - bias[:,1]] # estimation of the unbiased coefficients
+        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias[:,0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias[:,1],dim=0))) # estimation of the unbiased coefficients
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
