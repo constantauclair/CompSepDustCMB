@@ -66,6 +66,11 @@ Mixture_2 = Dust_2 + Noise_2
 
 ## Define final variables
 
+print("Dust 1 std =",np.std(Dust_1))
+print("Dust 2 std =",np.std(Dust_2))
+print("Noise 1 std =",np.std(Noise_1))
+print("Noise 2 std =",np.std(Noise_2))
+
 Dust = np.array([Dust_1,Dust_2])
 Noise = np.array([Noise_1,Noise_2])
 Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
