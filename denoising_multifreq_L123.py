@@ -142,7 +142,7 @@ def compute_complex_bias_std_L1(x):
 def compute_complex_bias_std_L3(x):
     noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
-    (_,coeffs_number) = np.shape(coeffs_ref)
+    coeffs_number = np.shape(coeffs_ref)
     n_pairs = noise_batch.shape[1]*(noise_batch.shape[1]-1)/2 * noise_batch.shape[2]
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_pairs = 0
