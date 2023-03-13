@@ -396,7 +396,7 @@ if __name__ == "__main__":
     kept_coeffs_noise = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_noise[1,0],nan=0)
     imag_coeffs_number_noise = torch.where(torch.sum(torch.where(kept_coeffs_noise>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_noise>0,1,0))).item()
     # L3
-    real_coeffs_number_L3 = len(torch.real(wph_op.apply([torch.from_numpy(Dust_tilde0[0]).to(device),torch.from_numpy(Dust_tilde0[1]).to(device)].to(device),norm=None,cross=True,pbc=pbc)))
+    real_coeffs_number_L3 = len(torch.real(wph_op.apply([torch.from_numpy(Dust_tilde0[0]).to(device),torch.from_numpy(Dust_tilde0[1]).to(device)],norm=None,cross=True,pbc=pbc)))
     kept_coeffs_L3 = torch.nan_to_num(relevant_imaginary_coeffs_L3 / std_L3[1],nan=0)
     imag_coeffs_number_L3 = torch.where(torch.sum(torch.where(kept_coeffs_L3>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L3>0,1,0))).item()
     
