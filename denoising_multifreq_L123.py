@@ -228,14 +228,14 @@ def objective2(x):
         loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L1[0,0][indices]) / std_L1[0,0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std_L1[1,0][indices],nan=0)
         loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target_L1[1,0][indices]) * kept_coeffs ) ** 2)
-        loss_F1_real = loss_F1_real / len(indices) #real_coeffs_number_dust
-        loss_F1_imag = loss_F1_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_dust
+        loss_F1_real = loss_F1_real / len(indices) #real_coeffs_number_L1
+        loss_F1_imag = loss_F1_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L1
         # Loss F2
         loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - coeffs_target_L1[0,1][indices]) / std_L1[0,1][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L1[indices] / std_L1[1,1][indices],nan=0)
         loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - coeffs_target_L1[1,1][indices]) * kept_coeffs ) ** 2)
-        loss_F2_real = loss_F2_real / len(indices) #real_coeffs_number_dust
-        loss_F2_imag = loss_F2_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_dust
+        loss_F2_real = loss_F2_real / len(indices) #real_coeffs_number_L1
+        loss_F2_imag = loss_F2_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L1
         #
         loss_F1_real.backward(retain_graph=True)
         loss_F1_imag.backward(retain_graph=True)
@@ -257,17 +257,17 @@ def objective2(x):
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
         # Loss F1
-        loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - mean_noise[0,0][indices]) / std_noise[0,0][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1,0][indices],nan=0)
-        loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - mean_noise[1,0][indices]) * kept_coeffs ) ** 2)
-        loss_F1_real = loss_F1_real / real_coeffs_number_noise
-        loss_F1_imag = loss_F1_imag / imag_coeffs_number_noise
+        loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L2[0,0][indices]) / std_L2[0,0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_L2[1,0][indices],nan=0)
+        loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target_L2[1,0][indices]) * kept_coeffs ) ** 2)
+        loss_F1_real = loss_F1_real / real_coeffs_number_L2
+        loss_F1_imag = loss_F1_imag / imag_coeffs_number_L2
         # Loss F2
-        loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - mean_noise[0,1][indices]) / std_noise[0,1][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1,1][indices],nan=0)
-        loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - mean_noise[1,1][indices]) * kept_coeffs ) ** 2)
-        loss_F2_real = loss_F2_real / real_coeffs_number_noise
-        loss_F2_imag = loss_F2_imag / imag_coeffs_number_noise
+        loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - coeffs_target_L2[0,1][indices]) / std_L2[0,1][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_L2[1,1][indices],nan=0)
+        loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - coeffs_target_L2[1,1][indices]) * kept_coeffs ) ** 2)
+        loss_F2_real = loss_F2_real / real_coeffs_number_L2
+        loss_F2_imag = loss_F2_imag / imag_coeffs_number_L2
         #
         loss_F1_real.backward(retain_graph=True)
         loss_F1_imag.backward(retain_graph=True)
@@ -352,7 +352,6 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std_L1(Dust_tilde0)
-        mean_noise, std_noise = compute_bias_std_L1(Dust_tilde0*0)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
@@ -383,18 +382,18 @@ if __name__ == "__main__":
     
     # Computation of the coeffs and std
     bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Dust_tilde0).to(device))
-    mean_L2, std_L2 = compute_complex_bias_std_L1(torch.from_numpy(Dust_tilde0*0).to(device))
+    coeffs_target_L2, std_L2 = compute_complex_bias_std_L1(torch.from_numpy(Dust_tilde0*0).to(device))
     bias_L3, std_L3 = compute_complex_bias_std_L3(torch.from_numpy(Dust_tilde0).to(device))
     
     # Compute the number of coeffs
     # L1
-    real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_dust = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std[1,0],nan=0)
-    imag_coeffs_number_dust = torch.where(torch.sum(torch.where(kept_coeffs_dust>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_dust>0,1,0))).item()
+    real_coeffs_number_L1 = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc)))
+    kept_coeffs_L1 = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std[1,0],nan=0)
+    imag_coeffs_number_L1 = torch.where(torch.sum(torch.where(kept_coeffs_L1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L1>0,1,0))).item()
     # L2
-    real_coeffs_number_noise = len(torch.real(wph_op.apply(torch.from_numpy(Noise[0]).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_noise = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_noise[1,0],nan=0)
-    imag_coeffs_number_noise = torch.where(torch.sum(torch.where(kept_coeffs_noise>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_noise>0,1,0))).item()
+    real_coeffs_number_L2 = len(torch.real(wph_op.apply(torch.from_numpy(Noise[0]).to(device),norm=None,pbc=pbc)))
+    kept_coeffs_L2 = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_L2[1,0],nan=0)
+    imag_coeffs_number_L2 = torch.where(torch.sum(torch.where(kept_coeffs_L2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L2>0,1,0))).item()
     # L3
     real_coeffs_number_L3 = len(torch.real(wph_op.apply([torch.from_numpy(Dust_tilde0[0]).to(device),torch.from_numpy(Dust_tilde0[1]).to(device)],norm=None,cross=True,pbc=pbc)))
     kept_coeffs_L3 = torch.nan_to_num(relevant_imaginary_coeffs_L3 / std_L3[1],nan=0)
