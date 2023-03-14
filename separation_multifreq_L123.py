@@ -46,9 +46,9 @@ n_batch = int(Mn/batch_size)
 Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')[::2,::2]
 Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')[::2,::2]
 
-CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
+CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]*0
 
-CMB_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
+CMB_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]*0
 
 Noise_1 = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[0]
 Noise_2 = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[0]
