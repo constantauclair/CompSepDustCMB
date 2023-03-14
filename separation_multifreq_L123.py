@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-file_name="denoising_multifreq_L123_SNR=1.npy"
+file_name="separation_multifreq_L123.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -39,42 +39,35 @@ Mn = 200 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
 
-## Loading the data
+#######
+# DATA
+#######
 
-Dust_1 = np.load('data/I_maps_v2_leo.npy')[0,0][::2,::2]
-Dust_2 = np.load('data/I_maps_v2_leo.npy')[0,1][::2,::2]
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
 
-Noise_1 = np.load('data/BICEP_noise_QiU_217GHZ.npy')[0].real
-Noise_2 = np.load('data/BICEP_noise_QiU_353GHZ.npy')[0].real
+CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
-Noise_1_syn = np.load('data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
-Noise_2_syn = np.load('data/BICEP_noise_QiU_353GHZ.npy')[1:Mn+1].real
+CMB_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
 
-## Normalizing the data with respect to the first frequency
+Noise_1 = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[0]
+Noise_2 = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[0]
 
-std_Dust_1 = np.std(Dust_1)
-std_Noise_1 = np.std(Noise_1)
+Noise_1_syn = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[1:Mn+1]
+Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:Mn+1]
 
-Noise_1 = Noise_1 / std_Noise_1 * std_Dust_1 / SNR
-Noise_2 = Noise_2 / std_Noise_1 * std_Dust_1 / SNR
-
-Noise_1_syn = Noise_1_syn / std_Noise_1 * std_Dust_1 / SNR
-Noise_2_syn = Noise_2_syn / std_Noise_1 * std_Dust_1 / SNR
-
-Mixture_1 = Dust_1 + Noise_1
-Mixture_2 = Dust_2 + Noise_2
+Mixture_1 = Dust_1 + CMB + Noise_1
+Mixture_2 = Dust_2 + CMB + Noise_2
 
 ## Define final variables
 
-print("Dust 1 std =",np.std(Dust_1))
-print("Dust 2 std =",np.std(Dust_2))
-print("Noise 1 std =",np.std(Noise_1))
-print("Noise 2 std =",np.std(Noise_2))
+Mixture = np.array([Mixture_1,Mixture_2])
 
 Dust = np.array([Dust_1,Dust_2])
-Noise = np.array([Noise_1,Noise_2])
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
-Mixture = np.array([Mixture_1,Mixture_2])
+
+CMB_Noise = np.array([CMB+Noise_1,CMB+Noise_2])
+
+CMB_Noise_syn = np.array([CMB_syn+Noise_1_syn,CMB_syn+Noise_2_syn])
 
 #######
 # USEFUL FUNCTIONS
@@ -94,7 +87,7 @@ def create_batch(n_freq, n_maps, n, device, batch_size):
     return batch.to(device)
 
 def compute_bias_std_L1(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -117,7 +110,7 @@ def compute_bias_std_L1(x):
     return bias, std
 
 def compute_complex_bias_std_L1(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -140,7 +133,7 @@ def compute_complex_bias_std_L1(x):
     return bias, std
 
 def compute_complex_bias_std_L3(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     n_pairs = int(noise_batch.shape[1]*(noise_batch.shape[1]-1)/2 * noise_batch.shape[2])
@@ -375,7 +368,7 @@ if __name__ == "__main__":
     wph_op.clear_normalization()
     coeffs_imag_L1 = torch.imag(wph_op.apply(Dust_tilde0[0],norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_L1) > 1e-6,1,0)
-    coeffs_imag_L2 = torch.imag(wph_op.apply(Noise[0],norm=None,pbc=pbc))
+    coeffs_imag_L2 = torch.imag(wph_op.apply(CMB_Noise[0],norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_L2) > 1e-6,1,0)
     coeffs_imag_L3 = torch.imag(wph_op.apply([Dust_tilde0[0],Dust_tilde0[1]],norm=None,cross=True,pbc=pbc))
     relevant_imaginary_coeffs_L3 = torch.where(torch.abs(coeffs_imag_L3) > 1e-6,1,0)
@@ -391,7 +384,7 @@ if __name__ == "__main__":
     kept_coeffs_L1 = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std[1,0],nan=0)
     imag_coeffs_number_L1 = torch.where(torch.sum(torch.where(kept_coeffs_L1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L1>0,1,0))).item()
     # L2
-    real_coeffs_number_L2 = len(torch.real(wph_op.apply(torch.from_numpy(Noise[0]).to(device),norm=None,pbc=pbc)))
+    real_coeffs_number_L2 = len(torch.real(wph_op.apply(torch.from_numpy(CMB_Noise[0]).to(device),norm=None,pbc=pbc)))
     kept_coeffs_L2 = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_L2[1,0],nan=0)
     imag_coeffs_number_L2 = torch.where(torch.sum(torch.where(kept_coeffs_L2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L2>0,1,0))).item()
     # L3
@@ -435,5 +428,4 @@ if __name__ == "__main__":
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde,Dust_tilde0,Mixture-Dust_tilde0])
-        
+        np.save(file_name, [Mixture,Dust,CMB_Noise,Dust_tilde,Mixture-Dust_tilde,Dust_tilde0,Mixture-Dust_tilde0])        
