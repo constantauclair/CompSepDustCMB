@@ -145,10 +145,13 @@ def objective1(x):
     # Reshape x
     u = x.reshape((n_freq, M, N))
     
+    # Track operations on u
+    u = torch.from_numpy(u).to(device).requires_grad_(True)
+    
     # Compute the loss
     loss_tot_F1 = torch.zeros(1)
     loss_tot_F2 = torch.zeros(1)
-    u_noisy, nb_chunks = wph_op.preconfigure(u + CMB_Noise_syn, requires_grad=True, pbc=pbc)
+    u_noisy, nb_chunks = wph_op.preconfigure(u + torch.from_numpy(CMB_Noise_syn).to(device), requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         if pbc==True:
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
