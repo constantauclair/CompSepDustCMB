@@ -18,7 +18,7 @@ M, N = 256, 256
 J = 6
 L = 4
 dn = 2
-pbc = True
+pbc = False
 
 SNR = 1
 
@@ -414,7 +414,7 @@ if __name__ == "__main__":
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0))) # estimation of the unbiased coefficients
         # L3
-        coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc) # maybe ?
+        coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
         coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L3[1],dim=0))) # estimation of the unbiased coefficients
         
         # Minimization
