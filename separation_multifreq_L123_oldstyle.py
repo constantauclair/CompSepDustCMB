@@ -24,8 +24,8 @@ SNR = 1
 
 file_name="separation_multifreq_L123_oldstyle.npy"
 
-n_step1 = 5
-iter_per_step1 = 100
+n_step1 = 1
+iter_per_step1 = 200
 
 n_step2 = 10
 iter_per_step2 = 100
@@ -357,14 +357,13 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        std = compute_std_L1(Dust_tilde0) #compute_std_L1(torch.from_numpy(Mixture).to(device))
+        std = compute_std_L1(torch.from_numpy(Mixture).to(device)) #compute_std_L1(Dust_tilde0)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
         
         # Minimization
-        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
-        #result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
