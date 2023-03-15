@@ -18,11 +18,11 @@ M, N = 256, 256
 J = 6
 L = 4
 dn = 2
-pbc = False
+pbc = True
 
 SNR = 1
 
-file_name="separation_multifreq_L123_CMB_pbc=False.npy"
+file_name="separation_multifreq_L123_oldstyle.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -35,16 +35,14 @@ optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxco
 
 device = 0 # GPU to use
 
-Mn = 200 # Number of noises per iteration
-batch_size = 10
-n_batch = int(Mn/batch_size)
+Mn = 10 # Number of noises per iteration
 
 #######
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')[::2,::2]
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')[::2,::2]
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
 
 CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -59,8 +57,8 @@ Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:M
 Mixture_1 = Dust_1 + CMB + Noise_1
 Mixture_2 = Dust_2 + CMB + Noise_2
 
-print(np.std(Dust_1)/np.std(Noise_1))
-print(np.std(Dust_2)/np.std(Noise_2))
+print("SNR F1 =",np.std(Dust_1)/np.std(Noise_1))
+print("SNR F2 =",np.std(Dust_2)/np.std(Noise_2))
 
 ## Define final variables
 
@@ -76,88 +74,64 @@ CMB_Noise_syn = np.array([CMB_syn+Noise_1_syn,CMB_syn+Noise_2_syn])
 # USEFUL FUNCTIONS
 #######
 
-def create_batch(n_freq, n_maps, n, device, batch_size):
-    x = n_maps//batch_size
-    if n_maps % batch_size != 0:
-        batch = torch.zeros([n_freq,x+1,batch_size,M,N])
-        for i in range(x):
-            batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
-        batch[:,x] = n[:,x*batch_size:,:,:]
-    else:
-        batch = torch.zeros([n_freq,x,batch_size,M,N])
-        for i in range(x):
-            batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
-    return batch.to(device)
-
-def compute_bias_std_L1(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
+def compute_std_L1(x):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
-    computed_noise = 0
-    for i in range(noise_batch.shape[1]):
-        this_batch_size = len(noise_batch[0,i])
-        batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        for freq in range(n_freq):
-            u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + noise_batch[freq,i], pbc=pbc)
-            for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[freq,:,indices] = coeffs_chunk - coeffs_ref[freq,indices]
-                del coeffs_chunk, indices
-            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
-        computed_noise += this_batch_size
-        del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
-        sys.stdout.flush() # Flush the standard output
-    bias = torch.mean(COEFFS,axis=1)
+    for freq in range(n_freq):
+        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + CMB_Noise_syn[freq], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+            COEFFS[freq,indices] = coeffs_chunk
+            del coeffs_chunk, indices
+        del u_noisy, nb_chunks
     std = torch.std(COEFFS,axis=1)
-    return bias, std
+    return std
 
-def compute_complex_bias_std_L1(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
+def compute_complex_std_L1(x):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
-    computed_noise = 0
-    for i in range(noise_batch.shape[1]):
-        this_batch_size = len(noise_batch[0,i])
-        batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        for freq in range(n_freq):
-            u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + noise_batch[freq,i], pbc=pbc)
-            for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[freq,:,indices] = coeffs_chunk - coeffs_ref[freq,indices]
-                del coeffs_chunk, indices
-            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
-        computed_noise += this_batch_size
-        del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
-        sys.stdout.flush() # Flush the standard output
-    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+    for freq in range(n_freq):
+        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + CMB_Noise_syn[freq], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+            COEFFS[freq,indices] = coeffs_chunk
+            del coeffs_chunk, indices
+        del u_noisy, nb_chunks
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
-    return bias, std
+    return std
 
-def compute_complex_bias_std_L3(x):
-    noise_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_Noise_syn).to(device), device=device, batch_size=batch_size)
+def compute_complex_std_L3(x):
     coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
     coeffs_number = len(coeffs_ref)
-    n_pairs = int(noise_batch.shape[1]*(noise_batch.shape[1]-1)/2 * noise_batch.shape[2])
+    pairs = []
+    for i in range(Mn):
+        for j in range(Mn):
+            if j>i:
+                pairs.append([x[0]+CMB_Noise_syn[0,i],x[1]+CMB_Noise_syn[1,j]])
+    n_pairs = len(pairs)
+    pairs = torch.tensor(pairs)
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_pairs = 0
-    for i in range(noise_batch.shape[1]):
-        for j in range(noise_batch.shape[1]):
-            if j>i:
-                batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-                uu_noisy, nb_chunks = wph_op.preconfigure([x[0]+noise_batch[0,i],x[1]+noise_batch[1,j]], cross=True, pbc=pbc)
-                for j in range(nb_chunks):
-                    coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
-                    batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
-                    del coeffs_chunk, indices
-                COEFFS[computed_pairs:computed_pairs+batch_size] = batch_COEFFS
-                computed_pairs += batch_size
-                del uu_noisy, nb_chunks, batch_COEFFS
-                sys.stdout.flush() # Flush the standard output
-    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+    for i in range(int(np.ceil(n_pairs/Mn))):
+        if n_pairs - computed_pairs > Mn:
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn,0],pairs[computed_pairs:computed_pairs+Mn,1]], cross=True, pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
+                COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk
+                del coeffs_chunk, indices
+            computed_pairs += Mn
+            del uu_noisy, nb_chunks
+        if n_pairs - computed_pairs <= Mn:
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:,0],pairs[computed_pairs:,1]], cross=True, pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
+                COEFFS[computed_pairs:,indices] = coeffs_chunk
+                del coeffs_chunk, indices
+            del uu_noisy, nb_chunks
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
-    return bias, std
+    return std
 
 #######
 # OBJECTIVE FUNCTIONS
@@ -174,17 +148,30 @@ def objective1(x):
     # Compute the loss
     loss_tot_F1 = torch.zeros(1)
     loss_tot_F2 = torch.zeros(1)
-    u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
+    u_noisy, nb_chunks = wph_op.preconfigure(u + CMB_Noise_syn, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-        loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
-        loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
-        loss_F1 = loss_F1 / len(coeffs_target[0])
-        loss_F2 = loss_F2 / len(coeffs_target[1])
-        loss_F1.backward(retain_graph=True)
-        loss_F2.backward(retain_graph=True)
-        loss_tot_F1 += loss_F1.detach().cpu()
-        loss_tot_F2 += loss_F2.detach().cpu()
+        if pbc==True:
+            coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
+            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
+            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
+            loss_F1 = loss_F1 / len(coeffs_target[0])
+            loss_F2 = loss_F2 / len(coeffs_target[1])
+            loss_F1.backward(retain_graph=True)
+            loss_F2.backward(retain_graph=True)
+            loss_tot_F1 += loss_F1.detach().cpu()
+            loss_tot_F2 += loss_F2.detach().cpu()
+        if pbc==False:
+            coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
+            kept_coeffs_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1[indices] / std[0,indices],nan=0)
+            kept_coeffs_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2[indices] / std[1,indices],nan=0)
+            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) * kept_coeffs_F1 ) ** 2)
+            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) * kept_coeffs_F2 ) ** 2)
+            loss_F1 = loss_F1 / coeffs_number_step1_L1_F1
+            loss_F2 = loss_F2 / coeffs_number_step1_L1_F2
+            loss_F1.backward(retain_graph=True)
+            loss_F2.backward(retain_graph=True)
+            loss_tot_F1 += loss_F1.detach().cpu()
+            loss_tot_F2 += loss_F2.detach().cpu()
         del coeffs_chunk, indices, loss_F1, loss_F2
     
     # Reshape the gradient
@@ -338,6 +325,26 @@ if __name__ == "__main__":
     
     Dust_tilde0 = np.array([Mixture_1,Mixture_2])
     
+    if pbc==False:
+        # Identification of the irrelevant imaginary parts of the coeffs
+        # F1
+        coeffs_step1_L1_F1 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc))
+        relevant_coeffs_step1_L1_F1 = torch.where(coeffs_step1_L1_F1 > 1e-6,1,0)
+        # F2
+        coeffs_step1_L1_F2 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[1]).to(device),norm=None,pbc=pbc))
+        relevant_coeffs_step1_L1_F2 = torch.where(coeffs_step1_L1_F2 > 1e-6,1,0)
+        
+        # Computation of the std
+        std = compute_std_L1(torch.from_numpy(Dust_tilde0).to(device))
+        
+        # Compute the number of coeffs
+        # F1
+        kept_coeffs_step1_L1_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1 / std[0],nan=0)
+        coeffs_number_step1_L1_F1 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))).item()
+        # F2
+        kept_coeffs_step1_L1_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2 / std[1],nan=0)
+        coeffs_number_step1_L1_F2 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))).item()
+        
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step1):
         
@@ -347,10 +354,10 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_bias_std_L1(Dust_tilde0)
+        std = compute_std_L1(Dust_tilde0)
         
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
@@ -414,7 +421,7 @@ if __name__ == "__main__":
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0))) # estimation of the unbiased coefficients
         # L3
-        coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc) # maybe ?
+        coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
         coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L3[1],dim=0))) # estimation of the unbiased coefficients
         
         # Minimization
