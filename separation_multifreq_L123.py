@@ -15,10 +15,10 @@ import pywph as pw
 n_freq = 2
 
 M, N = 256, 256
-J = 3
+J = 3 #6
 L = 4
 dn = 2
-pbc = True
+pbc = False
 
 SNR = 1
 
