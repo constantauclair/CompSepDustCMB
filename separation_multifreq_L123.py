@@ -348,6 +348,8 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std_L1(Dust_tilde0)
+        print('bias =',bias)
+        print('std =',std)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
