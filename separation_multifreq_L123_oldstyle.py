@@ -82,7 +82,7 @@ def compute_std_L1(x):
         u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + torch.from_numpy(CMB_Noise_syn[freq]).to(device), pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-            COEFFS[freq,:,indices] = coeffs_chunk
+            COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
             del coeffs_chunk, indices
         del u_noisy, nb_chunks
     std = torch.std(COEFFS,axis=1)
@@ -96,7 +96,7 @@ def compute_complex_std_L1(x):
         u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + torch.from_numpy(CMB_Noise_syn[freq]).to(device), pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-            COEFFS[freq,:,indices] = coeffs_chunk
+            COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
             del coeffs_chunk, indices
         del u_noisy, nb_chunks
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
@@ -119,7 +119,7 @@ def compute_complex_std_L3(x):
             uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn,0],pairs[computed_pairs:computed_pairs+Mn,1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
-                COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk
+                COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
                 del coeffs_chunk, indices
             computed_pairs += Mn
             del uu_noisy, nb_chunks
@@ -127,7 +127,7 @@ def compute_complex_std_L3(x):
             uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:,0],pairs[computed_pairs:,1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
-                COEFFS[computed_pairs:,indices] = coeffs_chunk
+                COEFFS[computed_pairs:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
                 del coeffs_chunk, indices
             del uu_noisy, nb_chunks
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
