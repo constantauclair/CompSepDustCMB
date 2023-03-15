@@ -18,11 +18,11 @@ M, N = 256, 256
 J = 6
 L = 4
 dn = 2
-pbc = True
+pbc = False
 
 SNR = 1
 
-file_name="separation_multifreq_L123_CMB.npy"
+file_name="separation_multifreq_L123_CMB_pbc=False.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
