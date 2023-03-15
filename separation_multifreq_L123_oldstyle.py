@@ -79,7 +79,7 @@ def compute_std_L1(x):
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     for freq in range(n_freq):
-        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + CMB_Noise_syn[freq], pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + torch.from_numpy(CMB_Noise_syn[freq]).to(device), pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             COEFFS[freq,indices] = coeffs_chunk
@@ -93,7 +93,7 @@ def compute_complex_std_L1(x):
     (_,coeffs_number) = np.shape(coeffs_ref)
     COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     for freq in range(n_freq):
-        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + CMB_Noise_syn[freq], pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(x[freq] + torch.from_numpy(CMB_Noise_syn[freq]).to(device), pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             COEFFS[freq,indices] = coeffs_chunk
@@ -109,7 +109,7 @@ def compute_complex_std_L3(x):
     for i in range(Mn):
         for j in range(Mn):
             if j>i:
-                pairs.append([x[0]+CMB_Noise_syn[0,i],x[1]+CMB_Noise_syn[1,j]])
+                pairs.append([x[0]+torch.from_numpy(CMB_Noise_syn[0,i]).to(device),x[1]+torch.from_numpy(CMB_Noise_syn[1,j])])
     n_pairs = len(pairs)
     pairs = torch.tensor(pairs)
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
