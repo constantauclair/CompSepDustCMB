@@ -24,7 +24,7 @@ SNR = 1
 
 file_name="separation_multifreq_L123_oldstyle.npy"
 
-n_step1 = 1
+n_step1 = 5
 iter_per_step1 = 200
 
 n_step2 = 10
