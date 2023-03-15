@@ -18,11 +18,11 @@ M, N = 256, 256
 J = 6
 L = 4
 dn = 2
-pbc = False
+pbc = True
 
 SNR = 1
 
-file_name="separation_multifreq_L123_CMB_pbc=False.npy"
+file_name="separation_multifreq_L123_new_dust_maps.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -43,8 +43,8 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')[::2,::2]
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')[::2,::2]
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
 
 CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -59,8 +59,8 @@ Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:M
 Mixture_1 = Dust_1 + CMB + Noise_1
 Mixture_2 = Dust_2 + CMB + Noise_2
 
-print(np.std(Dust_1)/np.std(Noise_1))
-print(np.std(Dust_2)/np.std(Noise_2))
+print("SNR F1 =",np.std(Dust_1)/np.std(Noise_1))
+print("SNR F2 =",np.std(Dust_2)/np.std(Noise_2))
 
 ## Define final variables
 
@@ -381,8 +381,6 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std_L1(Dust_tilde0)
-        print('bias =',bias)
-        print('std =',std)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
