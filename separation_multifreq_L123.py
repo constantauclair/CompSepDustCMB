@@ -15,7 +15,7 @@ import pywph as pw
 n_freq = 2
 
 M, N = 256, 256
-J = 6
+J = 3
 L = 4
 dn = 2
 pbc = True
