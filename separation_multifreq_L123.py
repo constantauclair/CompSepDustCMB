@@ -354,14 +354,14 @@ if __name__ == "__main__":
     if pbc==False:
         # Identification of the irrelevant imaginary parts of the coeffs
         # F1
-        coeffs_step1_L1_F1 = torch.abs(wph_op.apply(Dust_tilde0[0],norm=None,pbc=pbc))
+        coeffs_step1_L1_F1 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc))
         relevant_coeffs_step1_L1_F1 = torch.where(coeffs_step1_L1_F1 > 1e-6,1,0)
         # F2
-        coeffs_step1_L1_F2 = torch.abs(wph_op.apply(Dust_tilde0[1],norm=None,pbc=pbc))
+        coeffs_step1_L1_F2 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[1]).to(device),norm=None,pbc=pbc))
         relevant_coeffs_step1_L1_F2 = torch.where(coeffs_step1_L1_F2 > 1e-6,1,0)
         
         # Computation of the coeffs and std
-        bias, std = compute_bias_std_L1(Dust_tilde0)
+        bias, std = compute_bias_std_L1(torch.from_numpy(Dust_tilde0).to(device))
         
         # Compute the number of coeffs
         # F1
