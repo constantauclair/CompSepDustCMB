@@ -70,7 +70,7 @@ def compute_std_L1(x):
     for j in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
         COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
-        del coeffs_chunk, indices
+        del coeffs_chunk, indicecoeffs_target[0].to(device_id)s
     del u_noisy, nb_chunks
     std = torch.std(COEFFS,axis=0)
     return std
