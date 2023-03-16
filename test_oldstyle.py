@@ -284,7 +284,7 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
-    x0 = Mixture
+    x0 = s0_tilde #Mixture
     result = opt.minimize(objective_second, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
     final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
     
