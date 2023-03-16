@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-file_name="separation_multifreq_L123_oldstyle_4.npy"
+file_name="separation_multifreq_L123_oldstyle.npy"
 
 n_step1 = 1
 iter_per_step1 = 200
@@ -41,8 +41,8 @@ Mn = 10 # Number of noises per iteration
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')*4
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')*4
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
 
 CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -151,31 +151,32 @@ def objective1(x):
     # Compute the loss
     loss_tot_F1 = torch.zeros(1)
     loss_tot_F2 = torch.zeros(1)
-    u_noisy, nb_chunks = wph_op.preconfigure(torch.unsqueeze(u,1) + torch.from_numpy(CMB_Noise_syn).to(device), requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        if pbc==True:
-            coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
-            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
-            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
-            loss_F1 = loss_F1 / len(coeffs_target[0])
-            loss_F2 = loss_F2 / len(coeffs_target[1])
-            loss_F1.backward(retain_graph=True)
-            loss_F2.backward(retain_graph=True)
-            loss_tot_F1 += loss_F1.detach().cpu()
-            loss_tot_F2 += loss_F2.detach().cpu()
-        if pbc==False:
-            coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
-            kept_coeffs_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1[indices] / std[0,indices],nan=0)
-            kept_coeffs_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2[indices] / std[1,indices],nan=0)
-            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) * kept_coeffs_F1 ) ** 2)
-            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) * kept_coeffs_F2 ) ** 2)
-            loss_F1 = loss_F1 / coeffs_number_step1_L1_F1
-            loss_F2 = loss_F2 / coeffs_number_step1_L1_F2
-            loss_F1.backward(retain_graph=True)
-            loss_F2.backward(retain_graph=True)
-            loss_tot_F1 += loss_F1.detach().cpu()
-            loss_tot_F2 += loss_F2.detach().cpu()
-        del coeffs_chunk, indices, loss_F1, loss_F2
+    for i in range(Mn):
+        u_noisy, nb_chunks = wph_op.preconfigure(u + torch.from_numpy(CMB_Noise_syn[:,i]).to(device), requires_grad=True, pbc=pbc)
+        for j in range(nb_chunks):
+            if pbc==True:
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+                loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
+                loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
+                loss_F1 = loss_F1 / len(coeffs_target[0])
+                loss_F2 = loss_F2 / len(coeffs_target[1])
+                loss_F1.backward(retain_graph=True)
+                loss_F2.backward(retain_graph=True)
+                loss_tot_F1 += loss_F1.detach().cpu()
+                loss_tot_F2 += loss_F2.detach().cpu()
+            if pbc==False:
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+                kept_coeffs_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1[indices] / std[0,indices],nan=0)
+                kept_coeffs_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2[indices] / std[1,indices],nan=0)
+                loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) * kept_coeffs_F1 ) ** 2)
+                loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) * kept_coeffs_F2 ) ** 2)
+                loss_F1 = loss_F1 / coeffs_number_step1_L1_F1
+                loss_F2 = loss_F2 / coeffs_number_step1_L1_F2
+                loss_F1.backward(retain_graph=True)
+                loss_F2.backward(retain_graph=True)
+                loss_tot_F1 += loss_F1.detach().cpu()
+                loss_tot_F2 += loss_F2.detach().cpu()
+            del coeffs_chunk, indices, loss_F1, loss_F2
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
