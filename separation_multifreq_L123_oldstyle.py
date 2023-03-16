@@ -371,6 +371,8 @@ if __name__ == "__main__":
         
         print("Era "+str(i+1)+" done !")
         
+    np.save(file_name, [Mixture,Dust,CMB_Noise,Dust_tilde0,Mixture-Dust_tilde0,Dust_tilde0,Mixture-Dust_tilde0]) 
+        
     ## Second minimization
     print("Starting second step of minimization (all coeffs)...")
     
