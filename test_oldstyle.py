@@ -51,7 +51,7 @@ CIB_Noise = CIB+Noise
 
 CIB_Noise_syn = CIB_syn+Noise_syn
 
-norm = "auto"   # Normalization
+norm = None   # Normalization
 
 devices = [0,1] # List of GPUs to use
 
@@ -62,6 +62,19 @@ optim_params = {"maxiter": 100, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 # SEPARATION
 #######
     
+def compute_std_L1(x):
+    coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
+    (_,coeffs_number) = np.shape(coeffs_ref)
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(CIB_Noise_syn).to(0), pbc=pbc)
+    for j in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+        COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+        del coeffs_chunk, indices
+    del u_noisy, nb_chunks
+    std = torch.std(COEFFS,axis=0)
+    return std
+
 def objective_per_gpu_first(u, coeffs_target, wph_op, work_list, device_id):
     """
         Compute part of the loss and of the corresponding gradient on the target device (device_id).
@@ -87,7 +100,7 @@ def objective_per_gpu_first(u, coeffs_target, wph_op, work_list, device_id):
         u_noisy, nb_chunks = wph_op.preconfigure(u + CIBNoisesyn[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-            loss = torch.sum(torch.abs(coeffs_chunk - coeffs_target[indices]) ** 2) / Mn
+            loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std_target[indices] ) ** 2) / Mn
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
             del coeffs_chunk, indices, loss
@@ -110,8 +123,8 @@ def objective_per_gpu_second(u, coeffs_target, wph_op, work_list, device_id):
     
     coeffs_tar_1 = coeffs_target[0].to(device_id)
     coeffs_tar_2 = coeffs_target[1].to(device_id)
-    norm_map_1 = torch.from_numpy(coeffs_target[2]).to(device_id)
-    norm_map_2 = torch.from_numpy(coeffs_target[3]).to(device_id)
+    std_tar_1 = torch.from_numpy(coeffs_target[2]).to(device_id)
+    std_tar_2 = torch.from_numpy(coeffs_target[3]).to(device_id)
     
     # Select work_list for device
     work_list = work_list[device_id]
@@ -123,27 +136,23 @@ def objective_per_gpu_second(u, coeffs_target, wph_op, work_list, device_id):
     CIBNoisesyn = torch.from_numpy(CIB_Noise_syn[work_list]).to(device)
     
     # Compute the loss for dust
-    wph_op.clear_normalization()
-    wph_op.apply(norm_map_1, norm=norm, pbc=pbc)
     loss_tot1 = torch.zeros(1)
     for i in range(len(work_list)):
         u_noisy, nb_chunks = wph_op.preconfigure(u + CIBNoisesyn[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-            loss = torch.sum(torch.abs(coeffs_chunk - coeffs_tar_1[indices]) ** 2) / Mn
+            loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_tar_1[indices]) / std_tar_1[indices] ) ** 2) / Mn
             loss.backward(retain_graph=True)
             loss_tot1 += loss.detach().cpu()
             del coeffs_chunk, indices, loss
         sys.stdout.flush() # Flush the standard output
     
     # Compute the loss for CIB+Noise
-    wph_op.clear_normalization()
-    wph_op.apply(norm_map_2, norm=norm, pbc=pbc)
     loss_tot2 = torch.zeros(1)
     u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, pbc=pbc)
     for j in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_tar_2[indices]) ** 2) / Mn
+        loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_tar_2[indices]) / std_tar_2[indices] ) ** 2) / Mn
         loss = loss*alpha
         loss.backward(retain_graph=True)
         loss_tot2 += loss.detach().cpu()
@@ -233,6 +242,7 @@ if __name__ == "__main__":
     start_time = time.time()
     wph_op.load_model(["S11"])
     coeffs = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
+    std_target = compute_std_L1(torch.from_numpy(Dust).to(0))
     wph_op.to("cpu") # Move back to CPU before the actual denoising algorithm
     if torch.cuda.is_available():
         torch.cuda.empty_cache() # Empty the memory cache to clear devices[0] memory
@@ -254,24 +264,16 @@ if __name__ == "__main__":
     
     print(f"First step of denoising ended in {niter} iterations with optimizer message: {msg}")
 
-    print("Renormalizing for second step...")
-    start_time = time.time()
-    wph_op.clear_normalization()
     wph_op.to(devices[0])
-    print("Computing stats of target image...")
-    
-    s_norm = s0_tilde
-    n_norm = CIB_Noise
     
     print("Computing stats of target image...")
     start_time = time.time()
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.apply(s_norm, norm=norm, pbc=pbc).to("cpu")
     coeffs_dust = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
-    wph_op.clear_normalization()
-    wph_op.apply(n_norm, norm=norm, pbc=pbc).to("cpu")
+    std_dust = compute_std_L1(torch.from_numpy(Dust).to(0))
     coeffs_CN = wph_op.apply(CIB_Noise, norm=norm, pbc=pbc).to("cpu")
-    COEFFS = [coeffs_dust,coeffs_CN,s_norm,n_norm]
+    std_CN = compute_std_L1(torch.from_numpy(Dust*0).to(0))
+    COEFFS = [coeffs_dust,coeffs_CN,std_dust,std_CN]
     wph_op.to("cpu") # Move back to CPU before the actual denoising algorithm
     if torch.cuda.is_available():
         torch.cuda.empty_cache() # Empty the memory cache to clear devices[0] memory
