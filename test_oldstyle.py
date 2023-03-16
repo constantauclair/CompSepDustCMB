@@ -124,8 +124,8 @@ def objective_per_gpu_second(u, coeffs_target, wph_op, work_list, device_id):
     
     coeffs_tar_1 = coeffs_target[0].to(device_id)
     coeffs_tar_2 = coeffs_target[1].to(device_id)
-    std_tar_1 = torch.from_numpy(coeffs_target[2]).to(device_id)
-    std_tar_2 = torch.from_numpy(coeffs_target[3]).to(device_id)
+    std_tar_1 = coeffs_target[2].to(device_id)
+    std_tar_2 = coeffs_target[3].to(device_id)
     
     # Select work_list for device
     work_list = work_list[device_id]
