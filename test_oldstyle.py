@@ -29,13 +29,13 @@ pbc = True
 histo = False
 alpha = 60 # CIB+Noise loss factor
 
-output_filename = "Test_separation_CMB_8.npy"
+output_filename = "Test_separation_CMB.npy"
 
 Mn = 20
 
 ## Loading the data
 
-Dust = np.load('data/realistic_data/Dust_EE_217_microK.npy')*8
+Dust = np.load('data/realistic_data/Dust_EE_217_microK.npy')
 
 CIB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -140,7 +140,7 @@ def objective_per_gpu_second(u, coeffs_target, wph_op, work_list, device_id):
     wph_op.clear_normalization()
     wph_op.apply(norm_map_2, norm=norm, pbc=pbc)
     loss_tot2 = torch.zeros(1)
-    u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(Dust).to(device) - u, pbc=pbc)
+    u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, pbc=pbc)
     for j in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_tar_2[indices]) ** 2) / Mn
@@ -231,8 +231,8 @@ if __name__ == "__main__":
     
     print("Computing stats of target image...")
     start_time = time.time()
-    wph_op.load_model(["S11","L"])
-    coeffs = wph_op.apply(Dust, norm=norm, pbc=pbc).to("cpu")
+    wph_op.load_model(["S11"])
+    coeffs = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
     wph_op.to("cpu") # Move back to CPU before the actual denoising algorithm
     if torch.cuda.is_available():
         torch.cuda.empty_cache() # Empty the memory cache to clear devices[0] memory
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
-    x0 = Dust
+    x0 = Mixture
     result = opt.minimize(objective_first, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params0)
     final_loss, s0_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
     
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     start_time = time.time()
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     wph_op.apply(s_norm, norm=norm, pbc=pbc).to("cpu")
-    coeffs_dust = wph_op.apply(Dust, norm=norm, pbc=pbc).to("cpu")
+    coeffs_dust = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
     wph_op.clear_normalization()
     wph_op.apply(n_norm, norm=norm, pbc=pbc).to("cpu")
     coeffs_CN = wph_op.apply(CIB_Noise, norm=norm, pbc=pbc).to("cpu")
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
-    x0 = Dust
+    x0 = Mixture
     result = opt.minimize(objective_second, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
     final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
     
@@ -294,6 +294,6 @@ if __name__ == "__main__":
     print("Denoising ended in {:} iterations with optimizer message: {:}".format(niter,msg))
     
     if output_filename is not None:
-        np.save(output_filename, [Dust,CIB_Noise,s_tilde,Dust-s_tilde,s0_tilde])
+        np.save(output_filename, [Mixture,Dust,CIB_Noise,s_tilde,Mixture-s_tilde,s0_tilde,Mixture-s0_tilde])
 
 

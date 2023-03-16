@@ -20,7 +20,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L123.npy"
+file_name="separation_multifreq_L123_3maps.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
