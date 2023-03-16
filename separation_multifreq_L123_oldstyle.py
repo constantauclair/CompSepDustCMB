@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-file_name="separation_multifreq_L123_oldstyle_nostd.npy"
+file_name="separation_multifreq_L123_oldstyle_4.npy"
 
 n_step1 = 1
 iter_per_step1 = 200
@@ -41,8 +41,8 @@ Mn = 10 # Number of noises per iteration
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')*4
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')*4
 
 CMB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -155,8 +155,8 @@ def objective1(x):
     for i in range(nb_chunks):
         if pbc==True:
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc)
-            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) ) ** 2) #/ std[0,indices] ) ** 2)
-            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) ) ** 2) #/ std[1,indices] ) ** 2)
+            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
+            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
             loss_F1 = loss_F1 / len(coeffs_target[0])
             loss_F2 = loss_F2 / len(coeffs_target[1])
             loss_F1.backward(retain_graph=True)
