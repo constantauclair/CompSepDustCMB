@@ -64,7 +64,7 @@ optim_params = {"maxiter": 100, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
     
 def compute_std_L1(x):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
-    coeffs_number = coeffs_ref.size().item()
+    coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(CIB_Noise_syn).to(0), pbc=pbc)
     for j in range(nb_chunks):
