@@ -83,8 +83,8 @@ def objective_per_gpu_first(u, coeffs_target, wph_op, work_list, device_id):
     device = devices[device_id]
     wph_op.to(device)
     
-    coeffs_target = coeffs_target[0].to(device_id)
-    std_target = coeffs_target[1].to(device_id)
+    coeffs = coeffs_target[0].to(device)
+    std_target = coeffs_target[1].to(device)
     
     # Select work_list for device
     work_list = work_list[device_id]
@@ -101,7 +101,7 @@ def objective_per_gpu_first(u, coeffs_target, wph_op, work_list, device_id):
         u_noisy, nb_chunks = wph_op.preconfigure(u + CIBNoisesyn[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=norm, ret_indices=True, pbc=pbc)
-            loss = torch.sum(torch.abs( (coeffs_chunk - coeffs_target[indices]) / std_target[indices] ) ** 2) / Mn
+            loss = torch.sum(torch.abs( (coeffs_chunk - coeffs[indices]) / std_target[indices] ) ** 2) / Mn
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
             del coeffs_chunk, indices, loss
