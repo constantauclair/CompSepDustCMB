@@ -29,13 +29,13 @@ pbc = True
 histo = False
 alpha = 60 # CIB+Noise loss factor
 
-output_filename = "Test_separation_CMB.npy"
+output_filename = "Test_separation_CMB_8.npy"
 
-Mn = 100
+Mn = 20
 
 ## Loading the data
 
-Dust = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+Dust = np.load('data/realistic_data/Dust_EE_217_microK.npy')*8
 
 CIB = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 
@@ -57,9 +57,6 @@ devices = [0,1] # List of GPUs to use
 
 optim_params0 = {"maxiter": 20, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params = {"maxiter": 100, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
-
-#Mn = 100 # Number of noises per iteration
-Mn = 100
 
 #######
 # SEPARATION
