@@ -22,7 +22,7 @@ pbc = True
 
 SNR = 1
 
-file_name="separation_multifreq_L123_oldstyle.npy"
+file_name="separation_multifreq_L123_oldstyle_d_std.npy"
 
 n_step1 = 1
 iter_per_step1 = 200
@@ -358,7 +358,7 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        std = compute_std_L1(torch.from_numpy(Dust).to(device)) #compute_std_L1(Dust_tilde0)
+        std = compute_std_L1(torch.from_numpy(Mixture).to(device)) #compute_std_L1(Dust_tilde0)
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
