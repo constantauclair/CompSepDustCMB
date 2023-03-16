@@ -83,7 +83,8 @@ def objective_per_gpu_first(u, coeffs_target, wph_op, work_list, device_id):
     device = devices[device_id]
     wph_op.to(device)
     
-    coeffs_target = coeffs_target.to(device_id)
+    coeffs_target = coeffs_target[0].to(device_id)
+    std_target = coeffs_target[1].to(device_id)
     
     # Select work_list for device
     work_list = work_list[device_id]
@@ -241,8 +242,9 @@ if __name__ == "__main__":
     print("Computing stats of target image...")
     start_time = time.time()
     wph_op.load_model(["S11"])
-    coeffs = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
-    std_target = compute_std_L1(torch.from_numpy(Dust).to(0))
+    coeffs_target = wph_op.apply(Mixture, norm=norm, pbc=pbc).to("cpu")
+    std_target = compute_std_L1(torch.from_numpy(Dust).to(0)).to("cpu")
+    coeffs = [coeffs_target,std_target]
     wph_op.to("cpu") # Move back to CPU before the actual denoising algorithm
     if torch.cuda.is_available():
         torch.cuda.empty_cache() # Empty the memory cache to clear devices[0] memory
