@@ -117,7 +117,7 @@ def compute_complex_mean_std_L3(x):
     computed_pairs = 0
     for i in range(int(np.ceil(n_pairs/Mn))):
         if n_pairs - computed_pairs > Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn][0],pairs[computed_pairs:computed_pairs+Mn][1]], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn][0].cpu(),pairs[computed_pairs:computed_pairs+Mn][1].cpu()], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -125,7 +125,7 @@ def compute_complex_mean_std_L3(x):
             computed_pairs += Mn
             del uu_noisy, nb_chunks
         if n_pairs - computed_pairs <= Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:][0],pairs[computed_pairs:][1]], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:][0].cpu(),pairs[computed_pairs:][1].cpu()], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
