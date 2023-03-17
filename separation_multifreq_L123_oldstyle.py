@@ -27,7 +27,7 @@ file_name="separation_multifreq_L123_oldstyle.npy"
 n_step1 = 1
 iter_per_step1 = 200
 
-n_step2 = 10
+n_step2 = 1
 iter_per_step2 = 100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
