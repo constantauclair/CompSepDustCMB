@@ -111,14 +111,13 @@ def compute_complex_mean_std_L3(x):
     for i in range(Mn):
         for j in range(Mn):
             if j>i:
-                pairs.append([x[0].cpu()+torch.from_numpy(CMB_Noise_syn[0,i]),x[1].cpu()+torch.from_numpy(CMB_Noise_syn[1,j])])
+                pairs.append([x[0]+torch.from_numpy(CMB_Noise_syn[0,i]).to(device),x[1]+torch.from_numpy(CMB_Noise_syn[1,j]).to(device)])
     n_pairs = len(pairs)
-    pairs = torch.from_numpy(np.array(pairs)).to(device)
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_pairs = 0
     for i in range(int(np.ceil(n_pairs/Mn))):
         if n_pairs - computed_pairs > Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn,0],pairs[computed_pairs:computed_pairs+Mn,1]], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn][0],pairs[computed_pairs:computed_pairs+Mn][1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -126,7 +125,7 @@ def compute_complex_mean_std_L3(x):
             computed_pairs += Mn
             del uu_noisy, nb_chunks
         if n_pairs - computed_pairs <= Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:,0],pairs[computed_pairs:,1]], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:][0],pairs[computed_pairs:][1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
