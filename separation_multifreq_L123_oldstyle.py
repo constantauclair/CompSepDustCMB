@@ -156,7 +156,7 @@ def objective1(x):
     # Compute the loss
     loss_tot_F1 = torch.zeros(1)
     loss_tot_F2 = torch.zeros(1)
-    u_noisy, nb_chunks = wph_op.preconfigure(u + torch.from_numpy(CMB_Noise_syn).to(device), requires_grad=True, pbc=pbc)
+    u_noisy, nb_chunks = wph_op.preconfigure(u.unsqueeze(1).expand((n_freq,Mn,M,N)) + torch.from_numpy(CMB_Noise_syn).to(device), requires_grad=True, pbc=pbc)
     for j in range(nb_chunks):
         if pbc==True:
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
