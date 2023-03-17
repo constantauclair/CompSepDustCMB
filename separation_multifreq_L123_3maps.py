@@ -152,7 +152,7 @@ def compute_complex_mean_std_L2():
         cmb, nb_chunks = wph_op.preconfigure(CMB_batch[0,i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(cmb, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
             del coeffs_chunk, indices
         COEFFS[computed_CMB:computed_CMB+this_batch_size] = batch_COEFFS
         computed_CMB += this_batch_size
@@ -174,7 +174,7 @@ def compute_complex_mean_std_L3():
             noise, nb_chunks = wph_op.preconfigure(Noise_batch[freq,i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(noise, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[freq,:,indices] = coeffs_chunk
+                batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
                 del coeffs_chunk, indices
             COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
         computed_noise += this_batch_size
