@@ -107,7 +107,7 @@ def compute_complex_mean_std_L1(x):
 def compute_complex_mean_std_L3(x):
     coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
     coeffs_number = len(coeffs_ref)
-    n_pairs = Mn*(Mn-1)/2
+    n_pairs = int(Mn*(Mn-1)/2)
     p = 0
     pairs = torch.zeros((n_pairs,2,M,N))
     for i in range(Mn):

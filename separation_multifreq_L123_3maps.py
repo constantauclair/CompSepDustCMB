@@ -396,13 +396,13 @@ def objective2(x):
     print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
     print("L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
     # L3
-    print("L2 F1 real = "+str(round(loss_tot_2_F1_real.item(),3)))
-    print("L2 F1 imag = "+str(round(loss_tot_2_F1_imag.item(),3)))
-    print("L2 F2 real = "+str(round(loss_tot_2_F2_real.item(),3)))
-    print("L2 F2 imag = "+str(round(loss_tot_2_F2_imag.item(),3)))
+    print("L3 F1 real = "+str(round(loss_tot_3_F1_real.item(),3)))
+    print("L3 F1 imag = "+str(round(loss_tot_3_F1_imag.item(),3)))
+    print("L3 F2 real = "+str(round(loss_tot_3_F2_real.item(),3)))
+    print("L3 F2 imag = "+str(round(loss_tot_3_F2_imag.item(),3)))
     # L4
-    print("L3 real = "+str(round(loss_tot_3_real.item(),3)))
-    print("L3 imag = "+str(round(loss_tot_3_imag.item(),3)))
+    print("L4 real = "+str(round(loss_tot_4_real.item(),3)))
+    print("L4 imag = "+str(round(loss_tot_4_imag.item(),3)))
     print("")
 
     eval_cnt += 1
