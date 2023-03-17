@@ -58,8 +58,8 @@ Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:M
 Mixture_1 = Dust_1 + CMB + Noise_1
 Mixture_2 = Dust_2 + CMB + Noise_2
 
-print("SNR F1 =",np.std(Dust_1)/np.std(Noise_1))
-print("SNR F2 =",np.std(Dust_2)/np.std(Noise_2))
+print("SNR F1 =",np.std(Dust_1)/np.std(CMB+Noise_1))
+print("SNR F2 =",np.std(Dust_2)/np.std(CMB+Noise_2))
 
 ## Define final variables
 
