@@ -429,11 +429,11 @@ if __name__ == "__main__":
         
         # Coeffs target computation
         # L1
-        coeffs_target_L1 = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
+        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)),dim=0),torch.unsqueeze(torch.imag(wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc),dim=0))))
         # L2
         coeffs_target_L2 = mean_L2
         # L3
-        coeffs_target_L3 = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
+        coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)),dim=0),torch.unsqueeze(torch.imag(wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc),dim=0))))
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
