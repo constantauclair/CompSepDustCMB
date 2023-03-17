@@ -113,7 +113,7 @@ def compute_complex_mean_std_L3(x):
             if j>i:
                 pairs.append([x[0]+torch.from_numpy(CMB_Noise_syn[0,i]).to(device),x[1]+torch.from_numpy(CMB_Noise_syn[1,j]).to(device)])
     n_pairs = len(pairs)
-    pairs = torch.tensor(pairs)
+    pairs = torch.from_numpy(np.array(pairs))
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_pairs = 0
     for i in range(int(np.ceil(n_pairs/Mn))):
