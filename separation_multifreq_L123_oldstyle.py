@@ -107,17 +107,20 @@ def compute_complex_mean_std_L1(x):
 def compute_complex_mean_std_L3(x):
     coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
     coeffs_number = len(coeffs_ref)
-    pairs = []
+    n_pairs = Mn*(Mn-1)/2
+    p = 0
+    pairs = torch.zeros((n_pairs,2,M,N))
     for i in range(Mn):
         for j in range(Mn):
             if j>i:
-                pairs.append([x[0]+torch.from_numpy(CMB_Noise_syn[0,i]).to(device),x[1]+torch.from_numpy(CMB_Noise_syn[1,j]).to(device)])
-    n_pairs = len(pairs)
+                pairs[p,0] = x[0]+torch.from_numpy(CMB_Noise_syn[0,i]).to(device)
+                pairs[p,1] = x[1]+torch.from_numpy(CMB_Noise_syn[1,j]).to(device)
+                p=p+1
     COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_pairs = 0
     for i in range(int(np.ceil(n_pairs/Mn))):
         if n_pairs - computed_pairs > Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn][0].cpu(),pairs[computed_pairs:computed_pairs+Mn][1].cpu()], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:computed_pairs+Mn,0],pairs[computed_pairs:computed_pairs+Mn,1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:computed_pairs+Mn,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -125,7 +128,7 @@ def compute_complex_mean_std_L3(x):
             computed_pairs += Mn
             del uu_noisy, nb_chunks
         if n_pairs - computed_pairs <= Mn:
-            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:][0].cpu(),pairs[computed_pairs:][1].cpu()], cross=True, pbc=pbc)
+            uu_noisy, nb_chunks = wph_op.preconfigure([pairs[computed_pairs:,0],pairs[computed_pairs:,1]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 COEFFS[computed_pairs:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
