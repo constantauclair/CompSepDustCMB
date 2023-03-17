@@ -424,8 +424,8 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        _, std_L1 = compute_complex_mean_std_L1(Dust)
-        _, std_L3 = compute_complex_mean_std_L3(Dust)
+        _, std_L1 = compute_complex_mean_std_L1(torch.from_numpy(Dust).to(device))
+        _, std_L3 = compute_complex_mean_std_L3(torch.from_numpy(Dust).to(device))
         
         # Coeffs target computation
         # L1
