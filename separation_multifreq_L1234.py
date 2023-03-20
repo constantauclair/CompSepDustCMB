@@ -12,6 +12,19 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
+### Loss terms
+
+# Auto statistics
+# L1 : u_dust + CMB + n = d
+# L2 : u_CMB = CMB
+# L3 : d - u_dust - u_CMB = n
+
+# Cross-frequency statistics
+# L4 : (u_dust_1 + CMB + n_1)*(u_dust_2 + CMB + n_2) = d_1 * d_2 or (u_dust_1 + u_CMB + n_1)*(u_dust_2 + u_CMB + n_2) = d_1 * d_2 ?
+
+# Cross-component statistics
+    
+###
 n_freq = 2
 n_maps = n_freq+1
 
@@ -21,7 +34,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L123_3maps.npy"
+file_name="separation_multifreq_L1234bis.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -207,6 +220,29 @@ def compute_complex_bias_std_L4(x):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias, std
 
+def compute_complex_bias_std_L4bis(x):
+    coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, cross=True, pbc=pbc)
+    coeffs_number = len(coeffs_ref)
+    n_pairs = int(Noise_batch.shape[1]*(Noise_batch.shape[1]-1)/2 * Noise_batch.shape[2])
+    COEFFS = torch.zeros((n_pairs,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_pairs = 0
+    for i in range(Noise_batch.shape[1]):
+        for j in range(Noise_batch.shape[1]):
+            if j>i:
+                batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+                uu_noisy, nb_chunks = wph_op.preconfigure([x[0]+Noise_batch[0,i],x[1]+Noise_batch[1,j]], cross=True, pbc=pbc)
+                for j in range(nb_chunks):
+                    coeffs_chunk, indices = wph_op.apply(uu_noisy, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
+                    batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
+                    del coeffs_chunk, indices
+                COEFFS[computed_pairs:computed_pairs+batch_size] = batch_COEFFS
+                computed_pairs += batch_size
+                del uu_noisy, nb_chunks, batch_COEFFS
+                sys.stdout.flush() # Flush the standard output
+    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    return bias, std
+
 #######
 # OBJECTIVE FUNCTIONS
 #######
@@ -360,15 +396,16 @@ def objective2(x):
         loss_tot_3_F2_imag += loss_F2_imag.detach().cpu()
         del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
         
-    # Compute the loss 3
+    # Compute the loss 4
     loss_tot_4_real = torch.zeros(1)
     loss_tot_4_imag = torch.zeros(1)
-    u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
+    #u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
+    u_L4, nb_chunks = wph_op.preconfigure([u_dust[0]+u_CMB,u_dust[1]+u_CMB], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_L4, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
         #
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L4[0][indices]) / std_L4[0][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L3[indices] / std_L4[1][indices],nan=0)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L4[indices] / std_L4[1][indices],nan=0)
         loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L4[1][indices]) * kept_coeffs ) ** 2)
         loss_real = loss_real / len(indices) #real_coeffs_number_L3
         loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L3
@@ -495,7 +532,8 @@ if __name__ == "__main__":
     bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Current_maps0[:n_freq]).to(device))
     coeffs_target_L2, std_L2 = compute_complex_mean_std_L2()
     coeffs_target_L3, std_L3 = compute_complex_mean_std_L3()
-    bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
+    #bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
+    bias_L4, std_L4 = compute_complex_bias_std_L4bis(torch.from_numpy(Current_maps0[:n_freq]).to(device)+torch.from_numpy(Current_maps0[n_freq]).to(device))
     
     # Compute the number of coeffs
     # L1
@@ -527,7 +565,8 @@ if __name__ == "__main__":
         
         # Bias computation
         bias_L1, std_L1 = compute_complex_bias_std_L1(Current_maps[:n_freq])
-        bias_L4, std_L4 = compute_complex_bias_std_L4(Current_maps[:n_freq])
+        #bias_L4, std_L4 = compute_complex_bias_std_L4(Current_maps[:n_freq])
+        bias_L4, std_L4 = compute_complex_bias_std_L4bis(Current_maps[:n_freq]+Current_maps[n_freq])
         
         # Coeffs target computation
         # L1
