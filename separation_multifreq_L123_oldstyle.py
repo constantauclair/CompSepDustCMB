@@ -276,7 +276,7 @@ def objective2(x):
     loss_tot_3_real = torch.zeros(1)
     loss_tot_3_imag = torch.zeros(1)
     for j in range(Mn-1):
-        u_ter, nb_chunks = wph_op.preconfigure([u[0] + torch.from_numpy(CMB_Noise_syn[0,j]).to(device),u[1] + torch.from_numpy(CMB_Noise_syn[0,j+1]).to(device)], cross=True, requires_grad=True, pbc=pbc)
+        u_ter, nb_chunks = wph_op.preconfigure([u[0] + torch.from_numpy(CMB_Noise_syn[0,j]).to(device),u[1] + torch.from_numpy(CMB_Noise_syn[1,j+1]).to(device)], cross=True, requires_grad=True, pbc=pbc)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_ter, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
             #
