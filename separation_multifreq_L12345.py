@@ -227,11 +227,12 @@ def compute_complex_mean_std_L5():
     for i in range(CMB_batch.shape[1]):
         this_batch_size = len(CMB_batch[0,i])
         batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        cmbnoise, nb_chunks = wph_op.preconfigure([CMB_batch[i],Noise_batch[i]], cross=True, pbc=pbc)
-        for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(cmbnoise, j, cross=True, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
-            del coeffs_chunk, indices
+        for freq in range(n_freq):
+            cmbnoise, nb_chunks = wph_op.preconfigure([CMB_batch[i,:,freq],Noise_batch[i,:,freq]], cross=True, pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(cmbnoise, j, cross=True, norm=None, ret_indices=True, pbc=pbc)
+                batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+                del coeffs_chunk, indices
         COEFFS[:,computed_map:computed_map+this_batch_size] = batch_COEFFS
         computed_map += this_batch_size
         del cmbnoise, nb_chunks, batch_COEFFS, this_batch_size
