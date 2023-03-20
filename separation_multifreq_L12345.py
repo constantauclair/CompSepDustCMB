@@ -229,7 +229,7 @@ def compute_complex_mean_std_L5():
         batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         cmbnoise, nb_chunks = wph_op.preconfigure([CMB_batch[i],Noise_batch[i]], cross=True, pbc=pbc)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(cmbnoise, j, norm=None, ret_indices=True, pbc=pbc)
+            coeffs_chunk, indices = wph_op.apply(cmbnoise, j, cross=True, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
             del coeffs_chunk, indices
         COEFFS[:,computed_map:computed_map+this_batch_size] = batch_COEFFS
@@ -420,7 +420,7 @@ def objective2(x):
     loss_tot_5_F2_imag = torch.zeros(1)
     u_L5, nb_chunks = wph_op.preconfigure([torch.cat((torch.unsqueeze(u_CMB,dim=0),torch.unsqueeze(u_CMB,dim=0))),torch.from_numpy(Mixture).to(device) - u_dust - u_CMB], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u_L5, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(u_L5, i, cross=True, norm=None, ret_indices=True, pbc=pbc)
         # Loss F1
         loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L5[0,0][indices]) / std_L5[0,0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L5[indices] / std_L5[1,0][indices],nan=0)
