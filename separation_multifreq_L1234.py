@@ -32,13 +32,13 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234_0,5.npy"
+file_name="separation_multifreq_L1234.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
 
-n_step2 = 5#10
-iter_per_step2 = 200#100
+n_step2 = 10
+iter_per_step2 = 100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -84,9 +84,9 @@ CMB = np.array([CMB_1,CMB_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
-CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/2
+CMB_syn = np.array([CMB_1_syn,CMB_2_syn])
 
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/2
+Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
 
 #######
 # USEFUL FUNCTIONS
