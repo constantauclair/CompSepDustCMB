@@ -32,7 +32,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234.npy"
+file_name="separation_multifreq_L1234_0,2.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -84,9 +84,9 @@ CMB = np.array([CMB_1,CMB_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
-CMB_syn = np.array([CMB_1_syn,CMB_2_syn])
+CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/5
 
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
+Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/5
 
 #######
 # USEFUL FUNCTIONS
