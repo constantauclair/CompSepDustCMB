@@ -25,6 +25,7 @@ import pywph as pw
 ###
 n_freq = 2
 n_maps = n_freq+1
+n_iteration = 5
 
 M, N = 256, 256
 J = 6
@@ -32,7 +33,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234.npy"
+file_name="iterative_separation_multifreq_L1234.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -84,9 +85,9 @@ CMB = np.array([CMB_1,CMB_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
-CMB_syn = np.array([CMB_1_syn,CMB_2_syn])
+CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/n_iteration
 
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
+Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/n_iteration
 
 #######
 # USEFUL FUNCTIONS
@@ -153,7 +154,7 @@ def compute_complex_bias_std_L1(x):
     return bias, std
 
 def compute_complex_mean_std_L2():
-    coeffs_ref = wph_op.apply(torch.from_numpy(CMB_1).to(device), norm=None, pbc=pbc)
+    coeffs_ref = wph_op.apply(torch.from_numpy(CMB_syn[0,0]).to(device), norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_CMB = 0
@@ -344,7 +345,7 @@ def objective2(x):
     loss_tot_3_F2_real = torch.zeros(1)
     loss_tot_3_F1_imag = torch.zeros(1)
     loss_tot_3_F2_imag = torch.zeros(1)
-    u_L3, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u_dust - u_CMB, requires_grad=True, pbc=pbc)
+    u_L3, nb_chunks = wph_op.preconfigure(torch.from_numpy(Iteration_maps[:n_freq]).to(device) - u_dust - u_CMB, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_L3, i, norm=None, ret_indices=True, pbc=pbc)
         # Loss F1
@@ -429,137 +430,153 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
-    ## First minimization
-    print("Starting first minimization (only S11)...")
+    Iteration_maps0 = np.array([Mixture[0],Mixture[1],np.random.normal(np.mean(CMB_syn[0]),np.std(CMB_syn[0]),size=(M,N))])
     
-    eval_cnt = 0
+    Iteration_maps = Iteration_maps0
     
-    Dust_tilde0 = np.array([Mixture_1,Mixture_2])
-    
-    if pbc==False:
+    for iteration in range(n_iteration):
+        
+        print("Starting iteration "+str(iteration)+"...")
+        
+        ##########################################################################
+        
+        ## First minimization
+        print("Starting first minimization (only S11)...")
+        wph_op.load_model(["S11"])
+        
+        eval_cnt = 0
+        
+        Dust_tilde0 = Iteration_maps[:n_freq]
+        
+        if pbc==False:
+            # Identification of the irrelevant imaginary parts of the coeffs
+            # F1
+            coeffs_step1_L1_F1 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc))
+            relevant_coeffs_step1_L1_F1 = torch.where(coeffs_step1_L1_F1 > 1e-6,1,0)
+            # F2
+            coeffs_step1_L1_F2 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[1]).to(device),norm=None,pbc=pbc))
+            relevant_coeffs_step1_L1_F2 = torch.where(coeffs_step1_L1_F2 > 1e-6,1,0)
+            
+            # Computation of the coeffs and std
+            bias, std = compute_bias_std_L1(torch.from_numpy(Dust_tilde0).to(device))
+            
+            # Compute the number of coeffs
+            # F1
+            kept_coeffs_step1_L1_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1 / std[0],nan=0)
+            coeffs_number_step1_L1_F1 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))).item()
+            # F2
+            kept_coeffs_step1_L1_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2 / std[1],nan=0)
+            coeffs_number_step1_L1_F2 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))).item()
+            
+        # We perform a minimization of the objective function, using the noisy map as the initial map
+        for i in range(n_step1):
+            
+            print("Starting era "+str(i+1)+"...")
+            
+            # Initialization of the map
+            Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
+            
+            # Bias computation
+            bias, std = compute_bias_std_L1(Dust_tilde0)
+            
+            # Coeffs target computation
+            coeffs_target = wph_op.apply(torch.from_numpy(Iteration_maps[:n_freq]), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
+            
+            # Minimization
+            result = opt.minimize(objective1, torch.from_numpy(Iteration_maps[:n_freq]).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+            final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+            
+            # Reshaping
+            Dust_tilde0 = Dust_tilde0.reshape((n_freq, M, N)).astype(np.float32)
+            
+            print("Era "+str(i+1)+" done !")
+            
+        ## Second minimization
+        print("Starting second step of minimization (all coeffs)...")
+        
+        eval_cnt = 0
+        
+        # Creating new set of variables
+        Current_maps0 = np.array([Dust_tilde0[0],Dust_tilde0[1],Iteration_maps[n_freq]])
+        
         # Identification of the irrelevant imaginary parts of the coeffs
-        # F1
-        coeffs_step1_L1_F1 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc))
-        relevant_coeffs_step1_L1_F1 = torch.where(coeffs_step1_L1_F1 > 1e-6,1,0)
-        # F2
-        coeffs_step1_L1_F2 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[1]).to(device),norm=None,pbc=pbc))
-        relevant_coeffs_step1_L1_F2 = torch.where(coeffs_step1_L1_F2 > 1e-6,1,0)
+        wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+        wph_op.clear_normalization()
+        coeffs_imag_L1 = torch.imag(wph_op.apply(Current_maps0[0],norm=None,pbc=pbc))
+        relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_L1) > 1e-6,1,0)
+        coeffs_imag_L2 = torch.imag(wph_op.apply(CMB_syn[0,0],norm=None,pbc=pbc))
+        relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_L2) > 1e-6,1,0)
+        coeffs_imag_L3 = torch.imag(wph_op.apply(Noise_syn[0,0],norm=None,pbc=pbc))
+        relevant_imaginary_coeffs_L3 = torch.where(torch.abs(coeffs_imag_L3) > 1e-6,1,0)
+        coeffs_imag_L4 = torch.imag(wph_op.apply([Current_maps0[0],Current_maps0[1]],norm=None,cross=True,pbc=pbc))
+        relevant_imaginary_coeffs_L4 = torch.where(torch.abs(coeffs_imag_L4) > 1e-6,1,0)
         
         # Computation of the coeffs and std
-        bias, std = compute_bias_std_L1(torch.from_numpy(Dust_tilde0).to(device))
+        bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Current_maps0[:n_freq]).to(device))
+        coeffs_target_L2, std_L2 = compute_complex_mean_std_L2()
+        coeffs_target_L3, std_L3 = compute_complex_mean_std_L3()
+        bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
         
         # Compute the number of coeffs
-        # F1
-        kept_coeffs_step1_L1_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1 / std[0],nan=0)
-        coeffs_number_step1_L1_F1 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))).item()
-        # F2
-        kept_coeffs_step1_L1_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2 / std[1],nan=0)
-        coeffs_number_step1_L1_F2 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))).item()
-        
-    # We perform a minimization of the objective function, using the noisy map as the initial map
-    for i in range(n_step1):
-        
-        print("Starting era "+str(i+1)+"...")
-        
-        # Initialization of the map
-        Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
-        
-        # Bias computation
-        bias, std = compute_bias_std_L1(Dust_tilde0)
-        
-        # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
-        
-        # Minimization
-        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
-        final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
-        
-        # Reshaping
-        Dust_tilde0 = Dust_tilde0.reshape((n_freq, M, N)).astype(np.float32)
-        
-        print("Era "+str(i+1)+" done !")
-        
-    ## Second minimization
-    print("Starting second step of minimization (all coeffs)...")
-    
-    eval_cnt = 0
-    
-    # Creating new set of variables
-    Current_maps0 = np.array([Dust_tilde0[0],Dust_tilde0[1],np.random.normal(np.mean(CMB_1),np.std(CMB_1),size=(M,N))])
-    
-    # Identification of the irrelevant imaginary parts of the coeffs
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.clear_normalization()
-    coeffs_imag_L1 = torch.imag(wph_op.apply(Current_maps0[0],norm=None,pbc=pbc))
-    relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_L1) > 1e-6,1,0)
-    coeffs_imag_L2 = torch.imag(wph_op.apply(CMB[0],norm=None,pbc=pbc))
-    relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_L2) > 1e-6,1,0)
-    coeffs_imag_L3 = torch.imag(wph_op.apply(Noise[0],norm=None,pbc=pbc))
-    relevant_imaginary_coeffs_L3 = torch.where(torch.abs(coeffs_imag_L3) > 1e-6,1,0)
-    coeffs_imag_L4 = torch.imag(wph_op.apply([Current_maps0[0],Current_maps0[1]],norm=None,cross=True,pbc=pbc))
-    relevant_imaginary_coeffs_L4 = torch.where(torch.abs(coeffs_imag_L4) > 1e-6,1,0)
-    
-    # Computation of the coeffs and std
-    bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Current_maps0[:n_freq]).to(device))
-    coeffs_target_L2, std_L2 = compute_complex_mean_std_L2()
-    coeffs_target_L3, std_L3 = compute_complex_mean_std_L3()
-    bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
-    
-    # Compute the number of coeffs
-    # L1
-    real_coeffs_number_L1 = len(torch.real(wph_op.apply(torch.from_numpy(Current_maps0[0]).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_L1 = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std_L1[1,0],nan=0)
-    imag_coeffs_number_L1 = torch.where(torch.sum(torch.where(kept_coeffs_L1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L1>0,1,0))).item()
-    # L2
-    real_coeffs_number_L2 = len(torch.real(wph_op.apply(torch.from_numpy(CMB[0]).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_L2 = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_L2[1],nan=0)
-    imag_coeffs_number_L2 = torch.where(torch.sum(torch.where(kept_coeffs_L2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L2>0,1,0))).item()
-    # L3
-    real_coeffs_number_L3 = len(torch.real(wph_op.apply(torch.from_numpy(Noise[0]).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_L3 = torch.nan_to_num(relevant_imaginary_coeffs_L3 / std_L3[1,0],nan=0)
-    imag_coeffs_number_L3 = torch.where(torch.sum(torch.where(kept_coeffs_L3>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L3>0,1,0))).item()
-    # L4
-    real_coeffs_number_L4 = len(torch.real(wph_op.apply([torch.from_numpy(Current_maps0[0]).to(device),torch.from_numpy(Current_maps0[1]).to(device)],norm=None,cross=True,pbc=pbc)))
-    kept_coeffs_L4 = torch.nan_to_num(relevant_imaginary_coeffs_L4 / std_L4[1],nan=0)
-    imag_coeffs_number_L4 = torch.where(torch.sum(torch.where(kept_coeffs_L4>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L4>0,1,0))).item()
-    
-    Current_maps = Current_maps0
-    
-    # We perform a minimization of the objective function, using the noisy map as the initial map
-    for i in range(n_step2):
-        
-        print("Starting era "+str(i+1)+"...")
-        
-        # Initialization of the map
-        Current_maps = torch.from_numpy(Current_maps).to(device)
-        
-        # Bias computation
-        bias_L1, std_L1 = compute_complex_bias_std_L1(Current_maps[:n_freq])
-        bias_L4, std_L4 = compute_complex_bias_std_L4(Current_maps[:n_freq])
-        
-        # Coeffs target computation
         # L1
-        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
-        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0))) # estimation of the unbiased coefficients
+        real_coeffs_number_L1 = len(torch.real(wph_op.apply(torch.from_numpy(Current_maps0[0]).to(device),norm=None,pbc=pbc)))
+        kept_coeffs_L1 = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std_L1[1,0],nan=0)
+        imag_coeffs_number_L1 = torch.where(torch.sum(torch.where(kept_coeffs_L1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L1>0,1,0))).item()
+        # L2
+        real_coeffs_number_L2 = len(torch.real(wph_op.apply(torch.from_numpy(CMB_syn[0,0]).to(device),norm=None,pbc=pbc)))
+        kept_coeffs_L2 = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_L2[1],nan=0)
+        imag_coeffs_number_L2 = torch.where(torch.sum(torch.where(kept_coeffs_L2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L2>0,1,0))).item()
+        # L3
+        real_coeffs_number_L3 = len(torch.real(wph_op.apply(torch.from_numpy(Noise_syn[0,0]).to(device),norm=None,pbc=pbc)))
+        kept_coeffs_L3 = torch.nan_to_num(relevant_imaginary_coeffs_L3 / std_L3[1,0],nan=0)
+        imag_coeffs_number_L3 = torch.where(torch.sum(torch.where(kept_coeffs_L3>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L3>0,1,0))).item()
         # L4
-        coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
-        coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0))) # estimation of the unbiased coefficients
+        real_coeffs_number_L4 = len(torch.real(wph_op.apply([torch.from_numpy(Current_maps0[0]).to(device),torch.from_numpy(Current_maps0[1]).to(device)],norm=None,cross=True,pbc=pbc)))
+        kept_coeffs_L4 = torch.nan_to_num(relevant_imaginary_coeffs_L4 / std_L4[1],nan=0)
+        imag_coeffs_number_L4 = torch.where(torch.sum(torch.where(kept_coeffs_L4>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L4>0,1,0))).item()
         
-        # Minimization
-        result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+        Current_maps = Current_maps0
         
-        # Reshaping
-        Current_maps = Current_maps.reshape((n_maps, M, N)).astype(np.float32)
+        # We perform a minimization of the objective function, using the noisy map as the initial map
+        for i in range(n_step2):
+            
+            print("Starting era "+str(i+1)+"...")
+            
+            # Initialization of the map
+            Current_maps = torch.from_numpy(Current_maps).to(device)
+            
+            # Bias computation
+            bias_L1, std_L1 = compute_complex_bias_std_L1(Current_maps[:n_freq])
+            bias_L4, std_L4 = compute_complex_bias_std_L4(Current_maps[:n_freq])
+            
+            # Coeffs target computation
+            # L1
+            coeffs_d = wph_op.apply(torch.from_numpy(Iteration_maps[:n_freq]), norm=None, pbc=pbc)
+            coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0))) # estimation of the unbiased coefficients
+            # L4
+            coeffs_dd = wph_op.apply([torch.from_numpy(Iteration_maps[0]),torch.from_numpy(Iteration_maps[1])], norm=None, cross=True, pbc=pbc)
+            coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0))) # estimation of the unbiased coefficients
+            
+            # Minimization
+            result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+            final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+            
+            # Reshaping
+            Current_maps = Current_maps.reshape((n_maps, M, N)).astype(np.float32)
+            
+            print("Era "+str(i+1)+" done !")
+            
+        ##########################################################################
         
-        print("Era "+str(i+1)+" done !")
+        print("Iteration "+str(iteration)+" done !")
+        
+        Iteration_maps = Current_maps
         
     ## Output
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,CMB,Noise,Current_maps[:n_freq],np.array([Current_maps[n_freq],Current_maps[n_freq]]),Mixture-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]),Current_maps0[:n_freq]])        
+        np.save(file_name, [Mixture,Dust,CMB,Noise,Iteration_maps[:n_freq],np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Mixture-Iteration_maps[:n_freq]-np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Iteration_maps0[:n_freq]])        
