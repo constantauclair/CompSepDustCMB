@@ -35,11 +35,11 @@ pbc = True
 
 file_name="iterative_separation_multifreq_L1234.npy"
 
-n_step1 = 5
-iter_per_step1 = 50
+n_step1 = 2#5
+iter_per_step1 = 25#50
 
-n_step2 = 10
-iter_per_step2 = 100
+n_step2 = 3#10
+iter_per_step2 = 50#100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
