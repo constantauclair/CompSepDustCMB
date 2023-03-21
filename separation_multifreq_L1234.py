@@ -32,7 +32,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234.npy"
+file_name="separation_multifreq_L1234_dust4.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -53,8 +53,8 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
+Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')*4
+Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')*4
 
 CMB_1 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
 CMB_2 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
