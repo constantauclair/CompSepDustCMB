@@ -32,7 +32,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234.npy"
+file_name="separation_multifreq_L1234_Bmodes.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -53,20 +53,39 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
-Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
+mode = 'B'
 
-CMB_1 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
-CMB_2 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
-
-CMB_1_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
-CMB_2_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
-
-Noise_1 = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[0]
-Noise_2 = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[0]
-
-Noise_1_syn = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[1:Mn+1]
-Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:Mn+1]
+if mode=='E':
+    Dust_1 = np.load('data/realistic_data/Dust_EE_217_microK.npy')
+    Dust_2 = np.load('data/realistic_data/Dust_EE_353_microK.npy')
+    
+    CMB_1 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
+    CMB_2 = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[0]
+    
+    CMB_1_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
+    CMB_2_syn = np.load('data/realistic_data/CMB_EE_8arcmin_microK.npy')[1:Mn+1]
+    
+    Noise_1 = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[0]
+    Noise_2 = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[0]
+    
+    Noise_1_syn = np.load('data/realistic_data/Noise_EE_217_8arcmin_microK.npy')[1:Mn+1]
+    Noise_2_syn = np.load('data/realistic_data/Noise_EE_353_8arcmin_microK.npy')[1:Mn+1]
+    
+if mode=='B':
+    Dust_1 = np.load('data/realistic_data/Dust_BB_217_microK.npy')
+    Dust_2 = np.load('data/realistic_data/Dust_BB_353_microK.npy')
+    
+    CMB_1 = np.load('data/realistic_data/CMB_BB_8arcmin_microK.npy')[0]
+    CMB_2 = np.load('data/realistic_data/CMB_BB_8arcmin_microK.npy')[0]
+    
+    CMB_1_syn = np.load('data/realistic_data/CMB_BB_8arcmin_microK.npy')[1:Mn+1]
+    CMB_2_syn = np.load('data/realistic_data/CMB_BB_8arcmin_microK.npy')[1:Mn+1]
+    
+    Noise_1 = np.load('data/realistic_data/Noise_BB_217_8arcmin_microK.npy')[0]
+    Noise_2 = np.load('data/realistic_data/Noise_BB_353_8arcmin_microK.npy')[0]
+    
+    Noise_1_syn = np.load('data/realistic_data/Noise_BB_217_8arcmin_microK.npy')[1:Mn+1]
+    Noise_2_syn = np.load('data/realistic_data/Noise_BB_353_8arcmin_microK.npy')[1:Mn+1]
 
 Mixture_1 = Dust_1 + CMB_1 + Noise_1
 Mixture_2 = Dust_2 + CMB_2 + Noise_2
