@@ -50,7 +50,7 @@ if mode == 'B':
     iter_per_step1 = 100
     
     n_step2 = 5
-    iter_per_step2 = 200
+    iter_per_step2 = 400
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
