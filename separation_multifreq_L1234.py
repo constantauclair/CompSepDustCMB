@@ -24,7 +24,7 @@ import pywph as pw
     
 ###
 
-mode = 'B'
+mode = 'E'
 
 ###
 n_freq = 2
@@ -33,10 +33,10 @@ n_maps = n_freq+1
 M, N = 256, 256
 J = 6
 L = 4
-dn = 2
+dn = 5
 pbc = True
 
-file_name="separation_multifreq_L1234_"+mode+"modes.npy"
+file_name="separation_multifreq_L1234_"+mode+"modes_dn=5.npy"
 
 if mode == 'E':
     n_step1 = 5
