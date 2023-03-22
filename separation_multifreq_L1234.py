@@ -36,7 +36,7 @@ L = 4
 dn = 5
 pbc = True
 
-file_name="separation_multifreq_L1234_"+mode+"modes_dn=5.npy"
+file_name="separation_multifreq_L1234_"+mode+"modes_dn=5_noL4.npy"
 
 if mode == 'E':
     n_step1 = 5
@@ -403,22 +403,22 @@ def objective2(x):
     # Compute the loss 4
     loss_tot_4_real = torch.zeros(1)
     loss_tot_4_imag = torch.zeros(1)
-    u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u_L4, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
-        #
-        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L4[0][indices]) / std_L4[0][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L4[indices] / std_L4[1][indices],nan=0)
-        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L4[1][indices]) * kept_coeffs ) ** 2)
-        loss_real = loss_real / len(indices) #real_coeffs_number_L3
-        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L3
-        #
-        loss_real.backward(retain_graph=True)
-        loss_imag.backward(retain_graph=True)
-        #
-        loss_tot_4_real += loss_real.detach().cpu()
-        loss_tot_4_imag += loss_imag.detach().cpu()
-        del coeffs_chunk, indices, loss_real, loss_imag
+    # u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(u_L4, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
+    #     #
+    #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L4[0][indices]) / std_L4[0][indices] ) ** 2)
+    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L4[indices] / std_L4[1][indices],nan=0)
+    #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L4[1][indices]) * kept_coeffs ) ** 2)
+    #     loss_real = loss_real / len(indices) #real_coeffs_number_L3
+    #     loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L3
+    #     #
+    #     loss_real.backward(retain_graph=True)
+    #     loss_imag.backward(retain_graph=True)
+    #     #
+    #     loss_tot_4_real += loss_real.detach().cpu()
+    #     loss_tot_4_imag += loss_imag.detach().cpu()
+    #     del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
