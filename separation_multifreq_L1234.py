@@ -36,7 +36,7 @@ L = 4
 dn = 2
 pbc = True
 
-file_name="separation_multifreq_L1234_Bmodes.npy"
+file_name="separation_multifreq_L1234_"+mode+"modes.npy"
 
 if mode == 'E':
     n_step1 = 5
@@ -47,7 +47,7 @@ if mode == 'E':
     
 if mode == 'B':
     n_step1 = 5
-    iter_per_step1 = 50
+    iter_per_step1 = 100
     
     n_step2 = 5
     iter_per_step2 = 200
