@@ -29,7 +29,7 @@ mode = 'E'
 ###
 n_freq = 2
 n_maps = n_freq+1
-n_iteration = 5
+n_iteration = 2
 
 M, N = 256, 256
 J = 6
@@ -37,7 +37,9 @@ L = 4
 dn = 5
 pbc = True
 
-file_name="iterative_separation_multifreq_L1234_"+mode+"modes_dn=5.npy"
+file_names = []
+for i in range(n_iteration):
+    file_names.append("iterative_separation_multifreq_L1234_"+mode+"modes_dn=5_iter="+str(i+1)+"_of_"+str(n_iteration)+".npy")
 
 if mode == 'E':
     n_step1 = 5
@@ -603,9 +605,6 @@ if __name__ == "__main__":
         
         Iteration_maps = Current_maps
         
-    ## Output
+        np.save(file_names[iteration], [Mixture,Dust,CMB,Noise,Iteration_maps[:n_freq],np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Mixture-Iteration_maps[:n_freq]-np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Iteration_maps0[:n_freq]])        
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
-    
-    if file_name is not None:
-        np.save(file_name, [Mixture,Dust,CMB,Noise,Iteration_maps[:n_freq],np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Mixture-Iteration_maps[:n_freq]-np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Iteration_maps0[:n_freq]])        
