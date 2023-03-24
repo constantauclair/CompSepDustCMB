@@ -29,7 +29,8 @@ mode = 'E'
 ###
 n_freq = 2
 n_maps = n_freq+1
-n_iteration = 2
+contamination_division = 2
+n_iteration = contamination_division**2
 
 M, N = 256, 256
 J = 6
@@ -116,9 +117,9 @@ CMB = np.array([CMB_1,CMB_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
-CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/n_iteration
+CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/contamination_division
 
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/n_iteration
+Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/contamination_division
 
 #######
 # USEFUL FUNCTIONS
