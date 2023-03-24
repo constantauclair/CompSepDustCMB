@@ -18,7 +18,7 @@ L = 4
 dn = 2
 pbc = True
 
-SNR = 0,25
+SNR = 0.25
 
 file_name="denoising_final_L12_SNR=0,25.npy"
 
