@@ -14,7 +14,7 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
-file_name="denoising_L12.npy"
+file_name="denoising_L12_SNR=0,5_true_noisy.npy"
 
 M, N = 256, 256
 J = 6
@@ -25,9 +25,9 @@ norm="auto"
 
 alpha = 50
 
-SNR = 1
+SNR = 0.5
 
-optim_params = {"maxiter": 100, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+optim_params = {"maxiter": 50, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 devices = [0,1] # List of GPUs to use
 
@@ -45,11 +45,13 @@ Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
 Dust = (Dust - np.mean(Dust)) / np.std(Dust)
 
-Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
+Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR / 2
 
-Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
+Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR / 2
 
 Noise_model = Noise_syn[0]
+
+Dust = Dust + Noise
 
 Mixture = Dust + Noise
 
