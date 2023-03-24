@@ -23,7 +23,7 @@ dn = 2
 pbc = True
 norm="auto"
 
-alpha = 2
+alpha = 1
 
 SNR = 0.5
 
