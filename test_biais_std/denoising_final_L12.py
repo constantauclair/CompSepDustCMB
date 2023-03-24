@@ -273,8 +273,8 @@ if __name__ == "__main__":
     # Computation of the coeffs and std
     bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device))
     ##################
-    bias = bias*2
-    std = std*2
+    bias = bias*3
+    std = std*3
     ##################
     mean_noise, std_noise = compute_complex_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
     
@@ -297,8 +297,8 @@ if __name__ == "__main__":
         # Bias computation
         bias, std = compute_complex_bias_std(Dust_tilde)
         ##################
-        bias = bias*2
-        std = std*2
+        bias = bias*3
+        std = std*3
         ##################
         
         # Coeffs target computation
