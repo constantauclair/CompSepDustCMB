@@ -29,8 +29,8 @@ mode = 'E'
 ###
 n_freq = 2
 n_maps = n_freq+1
-contamination_division = 2
-n_iteration = contamination_division**2
+
+n_iteration = 2
 
 M, N = 256, 256
 J = 6
@@ -117,9 +117,9 @@ CMB = np.array([CMB_1,CMB_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
-CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/contamination_division
+CMB_syn = np.array([CMB_1_syn,CMB_2_syn])/n_iteration
 
-Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/contamination_division
+Noise_syn = np.array([Noise_1_syn,Noise_2_syn])/n_iteration
 
 #######
 # USEFUL FUNCTIONS
@@ -206,6 +206,27 @@ def compute_complex_mean_std_L2():
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return mean, std
 
+def compute_complex_mean_std_L2_iterative(iteration):
+    coeffs_ref = wph_op.apply(torch.from_numpy(CMB_syn[0,0]).to(device), norm=None, pbc=pbc)
+    coeffs_number = len(coeffs_ref)
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_CMB = 0
+    for i in range(CMB_batch.shape[1]):
+        this_batch_size = len(CMB_batch[0,i])
+        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        cmb, nb_chunks = wph_op.preconfigure((iteration+1)*CMB_batch[0,i], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(cmb, j, norm=None, ret_indices=True, pbc=pbc)
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+            del coeffs_chunk, indices
+        COEFFS[computed_CMB:computed_CMB+this_batch_size] = batch_COEFFS
+        computed_CMB += this_batch_size
+        del cmb, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    return mean, std
+
 def compute_complex_mean_std_L3():
     coeffs_ref = wph_op.apply(Noise, norm=None, pbc=pbc)
     (_,coeffs_number) = np.shape(coeffs_ref)
@@ -216,6 +237,28 @@ def compute_complex_mean_std_L3():
         batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         for freq in range(n_freq):
             noise, nb_chunks = wph_op.preconfigure(Noise_batch[freq,i], pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(noise, j, norm=None, ret_indices=True, pbc=pbc)
+                batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+                del coeffs_chunk, indices
+            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
+        computed_noise += this_batch_size
+        del noise, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+    return mean, std
+
+def compute_complex_mean_std_L3_iterative(iteration):
+    coeffs_ref = wph_op.apply(Noise, norm=None, pbc=pbc)
+    (_,coeffs_number) = np.shape(coeffs_ref)
+    COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(Noise_batch.shape[1]):
+        this_batch_size = len(Noise_batch[0,i])
+        batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        for freq in range(n_freq):
+            noise, nb_chunks = wph_op.preconfigure((iteration+1)*Noise_batch[freq,i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(noise, j, norm=None, ret_indices=True, pbc=pbc)
                 batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -372,6 +415,26 @@ def objective2(x):
         loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real, loss_imag
         
+    # Compute the loss 2 iterative
+    loss_tot_2_iterative_real = torch.zeros(1)
+    loss_tot_2_iterative_imag = torch.zeros(1)
+    u_L2_iterative, nb_chunks = wph_op.preconfigure(u_CMB+torch.from_numpy(Removed_CMB).to(device), requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_L2_iterative, i, norm=None, ret_indices=True, pbc=pbc)
+        # Loss
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L2_iterative[0][indices]) / std_L2_iterative[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_L2_iterative[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L2_iterative[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / real_coeffs_number_L2
+        loss_imag = loss_imag / imag_coeffs_number_L2
+        #
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        #
+        loss_tot_2_iterative_real += loss_real.detach().cpu()
+        loss_tot_2_iterative_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
+        
     # Compute the loss 3
     loss_tot_3_F1_real = torch.zeros(1)
     loss_tot_3_F2_real = torch.zeros(1)
@@ -404,30 +467,62 @@ def objective2(x):
         loss_tot_3_F2_imag += loss_F2_imag.detach().cpu()
         del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
         
+    # Compute the loss 3 iterative
+    loss_tot_3_iterative_F1_real = torch.zeros(1)
+    loss_tot_3_iterative_F2_real = torch.zeros(1)
+    loss_tot_3_iterative_F1_imag = torch.zeros(1)
+    loss_tot_3_iterative_F2_imag = torch.zeros(1)
+    u_L3_iterative, nb_chunks = wph_op.preconfigure(torch.from_numpy(Iteration_maps[:n_freq]).to(device) - u_dust - u_CMB + torch.from_numpy(Removed_Noise).to(device), requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_L3_iterative, i, norm=None, ret_indices=True, pbc=pbc)
+        # Loss F1
+        loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L3_iterative[0,0][indices]) / std_L3_iterative[0,0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L3[indices] / std_L3_iterative[1,0][indices],nan=0)
+        loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target_L3_iterative[1,0][indices]) * kept_coeffs ) ** 2)
+        loss_F1_real = loss_F1_real / real_coeffs_number_L3
+        loss_F1_imag = loss_F1_imag / imag_coeffs_number_L3
+        # Loss F2
+        loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - coeffs_target_L3_iterative[0,1][indices]) / std_L3_iterative[0,1][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L3[indices] / std_L3_iterative[1,1][indices],nan=0)
+        loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - coeffs_target_L3_iterative[1,1][indices]) * kept_coeffs ) ** 2)
+        loss_F2_real = loss_F2_real / real_coeffs_number_L2
+        loss_F2_imag = loss_F2_imag / imag_coeffs_number_L2
+        #
+        loss_F1_real.backward(retain_graph=True)
+        loss_F1_imag.backward(retain_graph=True)
+        loss_F2_real.backward(retain_graph=True)
+        loss_F2_imag.backward(retain_graph=True)
+        #
+        loss_tot_3_iterative_F1_real += loss_F1_real.detach().cpu()
+        loss_tot_3_iterative_F1_imag += loss_F1_imag.detach().cpu()
+        loss_tot_3_iterative_F2_real += loss_F2_real.detach().cpu()
+        loss_tot_3_iterative_F2_imag += loss_F2_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
+        
     # Compute the loss 4
     loss_tot_4_real = torch.zeros(1)
     loss_tot_4_imag = torch.zeros(1)
-    u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u_L4, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
-        #
-        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L4[0][indices]) / std_L4[0][indices] ) ** 2)
-        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L4[indices] / std_L4[1][indices],nan=0)
-        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L4[1][indices]) * kept_coeffs ) ** 2)
-        loss_real = loss_real / len(indices) #real_coeffs_number_L3
-        loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L3
-        #
-        loss_real.backward(retain_graph=True)
-        loss_imag.backward(retain_graph=True)
-        #
-        loss_tot_4_real += loss_real.detach().cpu()
-        loss_tot_4_imag += loss_imag.detach().cpu()
-        del coeffs_chunk, indices, loss_real, loss_imag
+    # u_L4, nb_chunks = wph_op.preconfigure([u_dust[0],u_dust[1]], cross=True, requires_grad=True, pbc=pbc)
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(u_L4, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
+    #     #
+    #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L4[0][indices]) / std_L4[0][indices] ) ** 2)
+    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L4[indices] / std_L4[1][indices],nan=0)
+    #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L4[1][indices]) * kept_coeffs ) ** 2)
+    #     loss_real = loss_real / len(indices) #real_coeffs_number_L3
+    #     loss_imag = loss_imag / torch.where(torch.sum(torch.where(kept_coeffs>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs>0,1,0))) #imag_coeffs_number_L3
+    #     #
+    #     loss_real.backward(retain_graph=True)
+    #     loss_imag.backward(retain_graph=True)
+    #     #
+    #     loss_tot_4_real += loss_real.detach().cpu()
+    #     loss_tot_4_imag += loss_imag.detach().cpu()
+    #     del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    loss_tot = loss_tot_1_F1_real + loss_tot_1_F1_imag + loss_tot_1_F2_real + loss_tot_1_F2_imag + loss_tot_2_real + loss_tot_2_imag + loss_tot_3_F1_real + loss_tot_3_F1_imag + loss_tot_3_F2_real + loss_tot_3_F2_imag + loss_tot_4_real + loss_tot_4_imag
+    loss_tot = loss_tot_1_F1_real + loss_tot_1_F1_imag + loss_tot_1_F2_real + loss_tot_1_F2_imag + loss_tot_2_real + loss_tot_2_imag + loss_tot_3_F1_real + loss_tot_3_F1_imag + loss_tot_3_F2_real + loss_tot_3_F2_imag + loss_tot_4_real + loss_tot_4_imag + loss_tot_2_iterative_real + loss_tot_2_iterative_imag + loss_tot_3_iterative_F1_real + loss_tot_3_iterative_F1_imag + loss_tot_3_iterative_F2_real + loss_tot_3_iterative_F2_imag
     
     print("L = "+str(round(loss_tot.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -447,6 +542,14 @@ def objective2(x):
     # L4
     print("L4 real = "+str(round(loss_tot_4_real.item(),3)))
     print("L4 imag = "+str(round(loss_tot_4_imag.item(),3)))
+    # L2 iterative
+    print("L2 iterative real = "+str(round(loss_tot_2_iterative_real.item(),3)))
+    print("L2 iterative imag = "+str(round(loss_tot_2_iterative_imag.item(),3)))
+    # L3 iterative
+    print("L3 iterative F1 real = "+str(round(loss_tot_3_iterative_F1_real.item(),3)))
+    print("L3 iterative F1 imag = "+str(round(loss_tot_3_iterative_F1_imag.item(),3)))
+    print("L3 iterative F2 real = "+str(round(loss_tot_3_iterative_F2_real.item(),3)))
+    print("L3 iterative F2 imag = "+str(round(loss_tot_3_iterative_F2_imag.item(),3)))
     print("")
 
     eval_cnt += 1
@@ -467,6 +570,10 @@ if __name__ == "__main__":
     Iteration_maps0 = np.array([Mixture[0],Mixture[1],np.random.normal(np.mean(CMB_syn[0]),np.std(CMB_syn[0]),size=(M,N))])
     
     Iteration_maps = Iteration_maps0
+    
+    Removed_CMB = np.zeros(np.shape(CMB))
+    
+    Removed_Noise = np.zeros(np.shape(Noise))
     
     for iteration in range(n_iteration):
         
@@ -553,7 +660,9 @@ if __name__ == "__main__":
         # Computation of the coeffs and std
         bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Current_maps0[:n_freq]).to(device))
         coeffs_target_L2, std_L2 = compute_complex_mean_std_L2()
+        coeffs_target_L2_iterative, std_L2_iterative = compute_complex_mean_std_L2_iterative(iteration)
         coeffs_target_L3, std_L3 = compute_complex_mean_std_L3()
+        coeffs_target_L3_iterative, std_L3_iterative = compute_complex_mean_std_L3_iterative(iteration)
         bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
         
         # Compute the number of coeffs
@@ -576,7 +685,7 @@ if __name__ == "__main__":
         
         Current_maps = Current_maps0
         
-        print("Ready ! (in {:}s)".format(time.time() - total_start_time))
+        print("Ready ! (in {:}s)".format(time.time() - start_time))
         
         # We perform a minimization of the objective function, using the noisy map as the initial map
         for i in range(n_step2):
@@ -611,8 +720,12 @@ if __name__ == "__main__":
         
         print("Iteration "+str(iteration+1)+" done ! (in {:}s)".format(time.time() - iteration_start_time))
         
+        Removed_CMB = Removed_CMB + np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]])
+        
+        Removed_Noise = Removed_Noise + (Iteration_maps[:n_freq]-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]))
+        
         Iteration_maps = Current_maps
         
-        np.save(file_names[iteration], [Mixture,Dust,CMB,Noise,Iteration_maps[:n_freq],np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Mixture-Iteration_maps[:n_freq]-np.array([Iteration_maps[n_freq],Iteration_maps[n_freq]]),Iteration_maps0[:n_freq]])        
-    
+        np.save(file_names[iteration], [Mixture,Dust,CMB,Noise,Iteration_maps[:n_freq],Removed_CMB,Removed_Noise,Iteration_maps0[:n_freq]])        
+        
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
