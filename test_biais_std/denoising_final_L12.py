@@ -240,7 +240,11 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = 2*compute_bias_std(Dust_tilde0)
+        bias, std = compute_bias_std(Dust_tilde0)
+        ###############
+        bias = bias*2
+        std = std*2
+        ###############
         mean_noise, std_noise = compute_bias_std(Dust_tilde0*0)
         
         # Coeffs target computation
@@ -268,6 +272,10 @@ if __name__ == "__main__":
     
     # Computation of the coeffs and std
     bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device))
+    ##################
+    bias = bias*2
+    std = std*2
+    ##################
     mean_noise, std_noise = compute_complex_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
     
     # Compute the number of coeffs
@@ -288,6 +296,10 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_complex_bias_std(Dust_tilde)
+        ##################
+        bias = bias*2
+        std = std*2
+        ##################
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
