@@ -240,7 +240,7 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_bias_std(Dust_tilde0)
+        bias, std = 2*compute_bias_std(Dust_tilde0)
         mean_noise, std_noise = compute_bias_std(Dust_tilde0*0)
         
         # Coeffs target computation
