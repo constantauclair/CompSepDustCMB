@@ -43,10 +43,10 @@ for i in range(n_iteration):
     file_names.append("iterative_separation_multifreq_L1234_"+mode+"modes_dn=5_iter="+str(i+1)+"_of_"+str(n_iteration)+".npy")
 
 if mode == 'E':
-    n_step1 = 5
+    n_step1 = 3
     iter_per_step1 = 50
     
-    n_step2 = 5
+    n_step2 = 3
     iter_per_step2 = 200
     
 if mode == 'B':
@@ -471,6 +471,7 @@ if __name__ == "__main__":
     for iteration in range(n_iteration):
         
         print("Starting iteration "+str(iteration+1)+"...")
+        iteration_start_time = time.time()
         
         ##########################################################################
         
@@ -528,6 +529,10 @@ if __name__ == "__main__":
         ## Second minimization
         print("Starting second step of minimization (all coeffs)...")
         
+        print("Initialization...")
+        
+        start_time = time.time()
+        
         eval_cnt = 0
         
         # Creating new set of variables
@@ -571,6 +576,8 @@ if __name__ == "__main__":
         
         Current_maps = Current_maps0
         
+        print("Ready ! (in {:}s)".format(time.time() - total_start_time))
+        
         # We perform a minimization of the objective function, using the noisy map as the initial map
         for i in range(n_step2):
             
@@ -602,7 +609,7 @@ if __name__ == "__main__":
             
         ##########################################################################
         
-        print("Iteration "+str(iteration+1)+" done !")
+        print("Iteration "+str(iteration+1)+" done ! (in {:}s)".format(time.time() - iteration_start_time))
         
         Iteration_maps = Current_maps
         
