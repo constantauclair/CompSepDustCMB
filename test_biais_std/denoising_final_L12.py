@@ -301,7 +301,7 @@ if __name__ == "__main__":
     
     # Identification of the irrelevant imaginary parts of the coeffs
     #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.load_model(["S11","S00","S01","L"])
+    wph_op.load_model(["S11","S00","L"])
     wph_op.clear_normalization()
     coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
