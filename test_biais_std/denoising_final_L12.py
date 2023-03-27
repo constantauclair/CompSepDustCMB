@@ -20,7 +20,7 @@ pbc = True
 
 SNR = 0.5
 
-file_name="denoising_final_L12_SNR=0,5_true_noisy_noL2.npy"
+file_name="denoising_final_L12_SNR=0,5_true_noisy.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -120,6 +120,28 @@ def compute_complex_bias_std(x):
     std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
     return bias, std
 
+def compute_complex_bias_std_noise(x):
+    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+    coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
+    coeffs_number = len(coeffs_ref)
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(noise_batch.shape[0]):
+        this_batch_size = len(noise_batch[i])
+        batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
+            batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
+            del coeffs_chunk, indices
+        COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
+        computed_noise += this_batch_size
+        del u_noisy, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    bias = [torch.mean(torch.real(COEFFS),axis=0),torch.mean(torch.imag(COEFFS),axis=0)]
+    std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
+    return bias, std
+
 #######
 # OBJECTIVE FUNCTIONS
 #######
@@ -183,19 +205,19 @@ def objective2(x):
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
-    # u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
-    # for i in range(nb_chunks):
-    #     coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
-    #     loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
-    #     kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1][indices],nan=0)
-    #     loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
-    #     loss_real = loss_real / real_coeffs_number_noise
-    #     loss_imag = loss_imag / imag_coeffs_number_noise
-    #     loss_real.backward(retain_graph=True)
-    #     loss_imag.backward(retain_graph=True)
-    #     loss_tot_2_real += loss_real.detach().cpu()
-    #     loss_tot_2_imag += loss_imag.detach().cpu()
-    #     del coeffs_chunk, indices, loss_real, loss_imag
+    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_noise[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - mean_noise[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / real_coeffs_number_noise
+        loss_imag = loss_imag / imag_coeffs_number_noise
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        loss_tot_2_real += loss_real.detach().cpu()
+        loss_tot_2_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
@@ -269,7 +291,7 @@ if __name__ == "__main__":
     
     # Computation of the coeffs and std
     bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device))
-    mean_noise, std_noise = compute_complex_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
+    mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device))
     
     # Compute the number of coeffs
     real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0).to(device),norm=None,pbc=pbc)))
