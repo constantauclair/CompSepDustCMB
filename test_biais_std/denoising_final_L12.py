@@ -18,9 +18,9 @@ L = 4
 dn = 5
 pbc = True
 
-SNR = 0.1
+SNR = 0.5
 
-file_name="denoising_final_L12_SNR=0,1_true_noisy.npy"
+file_name="denoising_final_L12_SNR=0,5_true_noisy_test.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -300,8 +300,8 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # Identification of the irrelevant imaginary parts of the coeffs
-    #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.load_model(["S11","S00","L"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    #wph_op.load_model(["S11","S00","L"])
     wph_op.clear_normalization()
     coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
