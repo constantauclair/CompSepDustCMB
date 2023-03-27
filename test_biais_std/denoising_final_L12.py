@@ -15,7 +15,7 @@ import pywph as pw
 M, N = 256, 256
 J = 6
 L = 4
-dn = 5
+dn = 2
 pbc = True
 
 SNR = 0.5
