@@ -241,15 +241,10 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std(Dust_tilde0)
-        print(bias)
-        ###############
-        bias = bias*3
-        std = std*3
-        ###############
-        mean_noise, std_noise = compute_bias_std(Dust_tilde0*0)
+        #mean_noise, std_noise = compute_bias_std(Dust_tilde0*0)
         
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - 3*bias # estimation of the unbiased coefficients
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
@@ -264,7 +259,8 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # Identification of the irrelevant imaginary parts of the coeffs
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_op.load_model(["S11"])
     wph_op.clear_normalization()
     coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
@@ -297,15 +293,10 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_complex_bias_std(Dust_tilde)
-        print(bias[0])
-        ##################
-        bias = bias*3
-        std = std*3
-        ##################
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
-        coeffs_target = [torch.real(coeffs_d) - bias[0],torch.imag(coeffs_d) - bias[1]] # estimation of the unbiased coefficients
+        coeffs_target = [torch.real(coeffs_d) - 3*bias[0],torch.imag(coeffs_d) - 3*bias[1]] # estimation of the unbiased coefficients
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
