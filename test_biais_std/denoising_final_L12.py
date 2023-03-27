@@ -15,12 +15,12 @@ import pywph as pw
 M, N = 256, 256
 J = 6
 L = 4
-dn = 2
+dn = 5
 pbc = True
 
-SNR = 0.5
+SNR = 0.25
 
-file_name="denoising_final_L12_SNR=0,5_true_noisy.npy"
+file_name="denoising_final_L12_SNR=0,25_true_noisy.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
