@@ -259,8 +259,8 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # Identification of the irrelevant imaginary parts of the coeffs
-    #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    wph_op.load_model(["S11"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    #wph_op.load_model(["S11"])
     wph_op.clear_normalization()
     coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
@@ -269,10 +269,6 @@ if __name__ == "__main__":
     
     # Computation of the coeffs and std
     bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device))
-    ##################
-    bias = bias*3
-    std = std*3
-    ##################
     mean_noise, std_noise = compute_complex_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
     
     # Compute the number of coeffs
