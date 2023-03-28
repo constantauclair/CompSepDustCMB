@@ -12,26 +12,32 @@ import pywph as pw
 # INPUT PARAMETERS
 #######
 
+n_iteration = 5
+
 M, N = 256, 256
 J = 6
 L = 4
 dn = 2
 pbc = True
 
-SNR = 0.5
+SNR = 1
 
-file_name="denoising_final_L12_SNR=0,5_true_noisy_test.npy"
+file_names = []
+for i in range(n_iteration):
+    file_names.append("iterative_denoising_final_L12_SNR=1_"+str(i+1)+"_of_"+str(n_iteration)+".npy")
 
-n_step1 = 5
+n_step1 = 3
 iter_per_step1 = 50
 
-n_step2 = 10
+n_step2 = 5
 iter_per_step2 = 50
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 device = 0 # GPU to use
+
+factor = 2*(n_iteration-np.arange(n_iteration))-1
 
 Mn = 200 # Number of noises per iteration
 batch_size = 10
@@ -49,13 +55,9 @@ Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
 Dust = (Dust - np.mean(Dust)) / np.std(Dust)
 
-Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR / 2 ###
+Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
 
-Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR / 2 ###
-
-###
-Dust = Dust + Noise
-###
+Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
 
 Mixture = Dust + Noise
 
@@ -76,8 +78,9 @@ def create_batch(n_maps, n, device, batch_size):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-def compute_bias_std(x):
-    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size) / n_iteration
+
+def compute_bias_std(x,iteration):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -85,7 +88,7 @@ def compute_bias_std(x):
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(x + np.sqrt(3)*noise_batch[i], pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(x + np.sqrt(factor[iteration])*noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
@@ -98,8 +101,7 @@ def compute_bias_std(x):
     std = torch.std(COEFFS,axis=0)
     return bias, std
 
-def compute_complex_bias_std(x):
-    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
+def compute_complex_bias_std(x,iteration):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -107,7 +109,7 @@ def compute_complex_bias_std(x):
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(x + np.sqrt(3)*noise_batch[i], pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(x + np.sqrt(factor[iteration])*noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
@@ -121,7 +123,6 @@ def compute_complex_bias_std(x):
     return bias, std
 
 def compute_complex_bias_std_noise(x):
-    noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -205,7 +206,7 @@ def objective2(x):
     # Compute the loss 2
     loss_tot_2_real = torch.zeros(1)
     loss_tot_2_imag = torch.zeros(1)
-    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Mixture).to(device) - u, requires_grad=True, pbc=pbc)
+    u_bis, nb_chunks = wph_op.preconfigure(torch.from_numpy(Iteration_map).to(device) - u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_bis, i, norm=None, ret_indices=True, pbc=pbc)
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - mean_noise[0][indices]) / std_noise[0][indices] ) ** 2)
@@ -242,90 +243,108 @@ def objective2(x):
 if __name__ == "__main__":
     
     total_start_time = time.time()
+    
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
-    ## First minimization
-    print("Starting first step of minimization (only S11)...")
+    Iteration_map0 = Mixture
     
-    eval_cnt = 0
+    Iteration_map = Iteration_map0
     
-    Dust_tilde0 = Mixture
+    Removed_Noise = np.zeros(np.shape(Noise))
     
-    # We perform a minimization of the objective function, using the noisy map as the initial map
-    for i in range(n_step1):
+    for iteration in range(n_iteration):
         
-        # Initialization of the map
-        Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
+        print("Starting iteration "+str(iteration+1)+"...")
+        iteration_start_time = time.time()
         
-        # Bias computation
-        bias, std = compute_bias_std(Dust_tilde0)
-        
-        # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
-        
-        # Minimization
-        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
-        final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
-        
-        # Reshaping
-        Dust_tilde0 = Dust_tilde0.reshape((M, N)).astype(np.float32)
-        
-    ## Second minimization
-    print("Starting second step of minimization (all coeffs)...")
+        ##########################################################################
     
-    eval_cnt = 0
-    
-    # Identification of the irrelevant imaginary parts of the coeffs
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    #wph_op.load_model(["S11","S00","L"])
-    wph_op.clear_normalization()
-    coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
-    relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
-    coeffs_imag_noise = torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))
-    relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_noise) > 1e-6,1,0)
-    
-    # Computation of the coeffs and std
-    bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device))
-    mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device))
-    
-    # Compute the number of coeffs
-    real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_dust = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std[1],nan=0)
-    imag_coeffs_number_dust = torch.where(torch.sum(torch.where(kept_coeffs_dust>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_dust>0,1,0))).item()
-    real_coeffs_number_noise = len(torch.real(wph_op.apply(torch.from_numpy(Noise).to(device),norm=None,pbc=pbc)))
-    kept_coeffs_noise = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_noise[1],nan=0)
-    imag_coeffs_number_noise = torch.where(torch.sum(torch.where(kept_coeffs_noise>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_noise>0,1,0))).item()
-    
-    Dust_tilde = Dust_tilde0
-    
-    # We perform a minimization of the objective function, using the noisy map as the initial map
-    for i in range(n_step2):
+        ## First minimization
+        print("Starting first step of minimization (only S11)...")
+        wph_op.load_model(["S11"])
         
-        # Initialization of the map
-        Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
+        eval_cnt = 0
         
-        # Bias computation
-        bias, std = compute_complex_bias_std(Dust_tilde)
+        Dust_tilde0 = Iteration_map
         
-        # Coeffs target computation
-        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
-        coeffs_target = [torch.real(coeffs_d) - bias[0],torch.imag(coeffs_d) - bias[1]] # estimation of the unbiased coefficients
+        # We perform a minimization of the objective function, using the noisy map as the initial map
+        for i in range(n_step1):
+            
+            # Initialization of the map
+            Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
+            
+            # Bias computation
+            bias, std = compute_bias_std(Dust_tilde0,iteration)
+            
+            # Coeffs target computation
+            coeffs_target = wph_op.apply(torch.from_numpy(Iteration_map), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
+            
+            # Minimization
+            result = opt.minimize(objective1, torch.from_numpy(Iteration_map).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+            final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+            
+            # Reshaping
+            Dust_tilde0 = Dust_tilde0.reshape((M, N)).astype(np.float32)
+            
+        ## Second minimization
+        print("Starting second step of minimization (all coeffs)...")
         
-        # Minimization
-        result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
-        final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+        eval_cnt = 0
         
-        # Reshaping
-        Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        # Identification of the irrelevant imaginary parts of the coeffs
+        wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+        #wph_op.load_model(["S11","S00","L"])
+        wph_op.clear_normalization()
+        coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
+        relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
+        coeffs_imag_noise = torch.imag(wph_op.apply(Noise,norm=None,pbc=pbc))
+        relevant_imaginary_coeffs_L2 = torch.where(torch.abs(coeffs_imag_noise) > 1e-6,1,0)
         
-    ## Output
+        # Computation of the coeffs and std
+        bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device),iteration)
+        mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0,iteration).to(device))
+        
+        # Compute the number of coeffs
+        real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0).to(device),norm=None,pbc=pbc)))
+        kept_coeffs_dust = torch.nan_to_num(relevant_imaginary_coeffs_L1 / std[1],nan=0)
+        imag_coeffs_number_dust = torch.where(torch.sum(torch.where(kept_coeffs_dust>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_dust>0,1,0))).item()
+        real_coeffs_number_noise = len(torch.real(wph_op.apply(torch.from_numpy(Noise).to(device),norm=None,pbc=pbc)))
+        kept_coeffs_noise = torch.nan_to_num(relevant_imaginary_coeffs_L2 / std_noise[1],nan=0)
+        imag_coeffs_number_noise = torch.where(torch.sum(torch.where(kept_coeffs_noise>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_noise>0,1,0))).item()
+        
+        Dust_tilde = Dust_tilde0
+        
+        # We perform a minimization of the objective function, using the noisy map as the initial map
+        for i in range(n_step2):
+            
+            # Initialization of the map
+            Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
+            
+            # Bias computation
+            bias, std = compute_complex_bias_std(Dust_tilde,iteration)
+            
+            # Coeffs target computation
+            coeffs_d = wph_op.apply(torch.from_numpy(Iteration_map), norm=None, pbc=pbc)
+            coeffs_target = [torch.real(coeffs_d) - bias[0],torch.imag(coeffs_d) - bias[1]] # estimation of the unbiased coefficients
+            
+            # Minimization
+            result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+            final_loss, Dust_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+            
+            # Reshaping
+            Dust_tilde = Dust_tilde.reshape((M, N)).astype(np.float32)
+        
+        print("Iteration "+str(iteration+1)+" done ! (in {:}s)".format(time.time() - iteration_start_time))
+        
+        Removed_Noise = Removed_Noise + Iteration_map - Dust_tilde
+        
+        np.save(file_names[iteration], [Mixture,Dust,Noise,Dust_tilde,Removed_Noise,Dust_tilde0,Iteration_map-Dust_tilde0])
+        
+        Iteration_map = Dust_tilde
+        
+        ##################################################################
     
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
-    
-    if file_name is not None:
-        np.save(file_name, [Mixture,Dust,Noise,Dust_tilde,Mixture-Dust_tilde,Dust_tilde0,Mixture-Dust_tilde0])
-        
