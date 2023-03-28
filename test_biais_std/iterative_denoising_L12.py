@@ -305,7 +305,7 @@ if __name__ == "__main__":
         
         # Computation of the coeffs and std
         bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device),iteration)
-        mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0,iteration).to(device))
+        mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device))
         
         # Compute the number of coeffs
         real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0).to(device),norm=None,pbc=pbc)))
