@@ -17,14 +17,14 @@ n_iteration = 5
 M, N = 256, 256
 J = 6
 L = 4
-dn = 4
+dn = 3
 pbc = True
 
-SNR = 1
+SNR = 0.25
 
 file_names = []
 for i in range(n_iteration):
-    file_names.append("iterative_denoising_final_L12_SNR=1_"+str(i+1)+"_of_"+str(n_iteration)+"_noC_dn=4.npy")
+    file_names.append("/denoisings/iterative_denoising_final_L12_SNR=0,25_"+str(i+1)+"_of_"+str(n_iteration)+"_dn=3.npy")
 
 n_step1 = 3
 iter_per_step1 = 50
@@ -314,8 +314,8 @@ if __name__ == "__main__":
         eval_cnt = 0
         
         # Identification of the irrelevant imaginary parts of the coeffs
-        #wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-        wph_op.load_model(["S11","S00","S01","L"])
+        wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+        #wph_op.load_model(["S11","S00","S01","L"])
         wph_op.clear_normalization()
         coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
         relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
