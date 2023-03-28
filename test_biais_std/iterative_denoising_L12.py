@@ -122,7 +122,7 @@ def compute_complex_bias_std(x,iteration):
     std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
     return bias, std
 
-def compute_complex_bias_std_noise(x):
+def compute_complex_bias_std_noise(x,fac):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -130,7 +130,7 @@ def compute_complex_bias_std_noise(x):
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
-        u_noisy, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
+        u_noisy, nb_chunks = wph_op.preconfigure(x + fac*noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk - coeffs_ref[indices]
@@ -219,11 +219,28 @@ def objective2(x):
         loss_tot_2_real += loss_real.detach().cpu()
         loss_tot_2_imag += loss_imag.detach().cpu()
         del coeffs_chunk, indices, loss_real, loss_imag
+        
+    # Compute the loss 2 iterative
+    loss_tot_2_iterative_real = torch.zeros(1)
+    loss_tot_2_iterative_imag = torch.zeros(1)
+    u_ter, nb_chunks = wph_op.preconfigure(torch.from_numpy(Iteration_map).to(device) - u + torch.from_numpy(Removed_Noise).to(device), requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_ter, i, norm=None, ret_indices=True, pbc=pbc)
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - iterative_mean_noise[0][indices]) / iterative_std_noise[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / iterative_std_noise[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - iterative_mean_noise[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / real_coeffs_number_noise
+        loss_imag = loss_imag / imag_coeffs_number_noise
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        loss_tot_2_iterative_real += loss_real.detach().cpu()
+        loss_tot_2_iterative_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
     
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag
+    loss_tot = loss_tot_1_real + loss_tot_1_imag + loss_tot_2_real + loss_tot_2_imag + loss_tot_2_iterative_real + loss_tot_2_iterative_imag
     
     print("L = "+str(round(loss_tot.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -231,6 +248,8 @@ def objective2(x):
     print("L1 imag = "+str(round(loss_tot_1_imag.item(),3)))
     print("L2 real = "+str(round(loss_tot_2_real.item(),3)))
     print("L2 imag = "+str(round(loss_tot_2_imag.item(),3)))
+    print("L2 iterative real = "+str(round(loss_tot_2_iterative_real.item(),3)))
+    print("L2 iterative imag = "+str(round(loss_tot_2_iterative_imag.item(),3)))
     print("")
 
     eval_cnt += 1
@@ -305,7 +324,8 @@ if __name__ == "__main__":
         
         # Computation of the coeffs and std
         bias, std = compute_complex_bias_std(torch.from_numpy(Dust_tilde0).to(device),iteration)
-        mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device))
+        mean_noise, std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device),1)
+        iterative_mean_noise, iterative_std_noise = compute_complex_bias_std_noise(torch.from_numpy(Dust_tilde0*0).to(device),iteration+1)
         
         # Compute the number of coeffs
         real_coeffs_number_dust = len(torch.real(wph_op.apply(torch.from_numpy(Dust_tilde0).to(device),norm=None,pbc=pbc)))
