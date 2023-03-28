@@ -20,11 +20,11 @@ L = 4
 dn = 3
 pbc = True
 
-SNR = 0.25
+SNR = 0.5
 
 file_names = []
 for i in range(n_iteration):
-    file_names.append("denoisings/iterative_denoising_final_L12_SNR=0,25_"+str(i+1)+"_of_"+str(n_iteration)+"_dn=3.npy")
+    file_names.append("denoisings/iterative_denoising_final_L12_SNR=0,5_"+str(i+1)+"_of_"+str(n_iteration)+"_dn=3.npy")
 
 n_step1 = 3
 iter_per_step1 = 50
