@@ -259,7 +259,7 @@ def compute_complex_mean_std_L5(x):
         this_batch_size = len(CMB_batch[0,i])
         batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         for freq in range(n_freq):
-            dustxCMB, nb_chunks = wph_op.preconfigure([x[freq],CMB_batch[freq,i]], cross=True, pbc=pbc)
+            dustxCMB, nb_chunks = wph_op.preconfigure([x[freq].expand((this_batch_size,M,N)),CMB_batch[freq,i]], cross=True, pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(dustxCMB, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
@@ -450,7 +450,7 @@ def objective2(x):
     loss_tot_5_F2_real = torch.zeros(1)
     loss_tot_5_F1_imag = torch.zeros(1)
     loss_tot_5_F2_imag = torch.zeros(1)
-    u_L5, nb_chunks = wph_op.preconfigure([u_dust,torch.unsqueeze(u_CMB)], cross=True, requires_grad=True, pbc=pbc)
+    u_L5, nb_chunks = wph_op.preconfigure([u_dust,u_CMB.expand((n_freq,M,N))], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_L5, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
         # Loss F1
