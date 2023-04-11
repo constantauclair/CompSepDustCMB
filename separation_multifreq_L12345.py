@@ -450,7 +450,7 @@ def objective2(x):
     loss_tot_5_F2_real = torch.zeros(1)
     loss_tot_5_F1_imag = torch.zeros(1)
     loss_tot_5_F2_imag = torch.zeros(1)
-    u_L5, nb_chunks = wph_op.preconfigure([u_dust,u_CMB], cross=True, requires_grad=True, pbc=pbc)
+    u_L5, nb_chunks = wph_op.preconfigure([u_dust,torch.unsqueeze(u_CMB)], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_L5, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
         # Loss F1
