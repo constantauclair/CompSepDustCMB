@@ -264,8 +264,8 @@ def compute_complex_mean_std_L5(x):
                 coeffs_chunk, indices = wph_op.apply(dustxCMB, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
                 batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
                 del coeffs_chunk, indices
-            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
-        computed_noise += this_batch_size
+            COEFFS[freq,computed_CMB:computed_CMB+this_batch_size] = batch_COEFFS[freq]
+        computed_CMB += this_batch_size
         del dustxCMB, nb_chunks, batch_COEFFS, this_batch_size
         sys.stdout.flush() # Flush the standard output
     mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
