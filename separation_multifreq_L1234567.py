@@ -560,7 +560,7 @@ def objective2(x):
     loss_tot_7_F2_real = torch.zeros(1)
     loss_tot_7_F1_imag = torch.zeros(1)
     loss_tot_7_F2_imag = torch.zeros(1)
-    u_L7, nb_chunks = wph_op.preconfigure([u_CMB,torch.from_numpy(Mixture).to(device) - u_dust - u_CMB], cross=True, requires_grad=True, pbc=pbc)
+    u_L7, nb_chunks = wph_op.preconfigure([u_CMB.expand((n_freq,M,N)),torch.from_numpy(Mixture).to(device) - u_dust - u_CMB], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_L7, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
         # Loss F1
