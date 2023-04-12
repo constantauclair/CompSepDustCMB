@@ -41,7 +41,7 @@ L = 4
 dn = 5
 pbc = True
 
-file_name="separation_multifreq_L12345_"+mode+"modes.npy"
+file_name="separation_multifreq_L1234567_"+mode+"modes.npy"
 
 if mode == 'E':
     n_step1 = 5
@@ -274,6 +274,50 @@ def compute_complex_mean_std_L5(x):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
     return mean, std
 
+def compute_complex_mean_std_L6(x):
+    coeffs_ref = wph_op.apply([x,Noise_syn[:,0]], norm=None, cross=True, pbc=pbc)
+    (_,coeffs_number) = np.shape(coeffs_ref)
+    COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(Noise_batch.shape[1]):
+        this_batch_size = len(Noise_batch[0,i])
+        batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        for freq in range(n_freq):
+            dustxnoise, nb_chunks = wph_op.preconfigure([x[freq].expand((this_batch_size,M,N)),Noise_batch[freq,i]], cross=True, pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(dustxnoise, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
+                batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+                del coeffs_chunk, indices
+            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
+        computed_noise += this_batch_size
+        del dustxnoise, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+    return mean, std
+
+def compute_complex_mean_std_L7():
+    coeffs_ref = wph_op.apply([CMB_syn[:,0],Noise_syn[:,0]], norm=None, cross=True, pbc=pbc)
+    (_,coeffs_number) = np.shape(coeffs_ref)
+    COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(Noise_batch.shape[1]):
+        this_batch_size = len(Noise_batch[0,i])
+        batch_COEFFS = torch.zeros((n_freq,this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
+        for freq in range(n_freq):
+            CMBxnoise, nb_chunks = wph_op.preconfigure([CMB_batch[freq,i],Noise_batch[freq,i]], cross=True, pbc=pbc)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(CMBxnoise, j, norm=None, cross=True, ret_indices=True, pbc=pbc)
+                batch_COEFFS[freq,:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
+                del coeffs_chunk, indices
+            COEFFS[freq,computed_noise:computed_noise+this_batch_size] = batch_COEFFS[freq]
+        computed_noise += this_batch_size
+        del CMBxnoise, nb_chunks, batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+    return mean, std
+
 #######
 # OBJECTIVE FUNCTIONS
 #######
@@ -479,10 +523,74 @@ def objective2(x):
         loss_tot_5_F2_imag += loss_F2_imag.detach().cpu()
         del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
         
+    # Compute the loss 6
+    loss_tot_6_F1_real = torch.zeros(1)
+    loss_tot_6_F2_real = torch.zeros(1)
+    loss_tot_6_F1_imag = torch.zeros(1)
+    loss_tot_6_F2_imag = torch.zeros(1)
+    u_L6, nb_chunks = wph_op.preconfigure([u_dust,torch.from_numpy(Mixture).to(device) - u_dust - u_CMB], cross=True, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_L6, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
+        # Loss F1
+        loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L6[0,0][indices]) / std_L6[0,0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L6[indices] / std_L6[1,0][indices],nan=0)
+        loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target_L6[1,0][indices]) * kept_coeffs ) ** 2)
+        loss_F1_real = loss_F1_real / real_coeffs_number_L6
+        loss_F1_imag = loss_F1_imag / imag_coeffs_number_L6
+        # Loss F2
+        loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - coeffs_target_L6[0,1][indices]) / std_L6[0,1][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L6[indices] / std_L6[1,1][indices],nan=0)
+        loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - coeffs_target_L6[1,1][indices]) * kept_coeffs ) ** 2)
+        loss_F2_real = loss_F2_real / real_coeffs_number_L6
+        loss_F2_imag = loss_F2_imag / imag_coeffs_number_L6
+        #
+        loss_F1_real.backward(retain_graph=True)
+        loss_F1_imag.backward(retain_graph=True)
+        loss_F2_real.backward(retain_graph=True)
+        loss_F2_imag.backward(retain_graph=True)
+        #
+        loss_tot_6_F1_real += loss_F1_real.detach().cpu()
+        loss_tot_6_F1_imag += loss_F1_imag.detach().cpu()
+        loss_tot_6_F2_real += loss_F2_real.detach().cpu()
+        loss_tot_6_F2_imag += loss_F2_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
+        
+    # Compute the loss 7
+    loss_tot_7_F1_real = torch.zeros(1)
+    loss_tot_7_F2_real = torch.zeros(1)
+    loss_tot_7_F1_imag = torch.zeros(1)
+    loss_tot_7_F2_imag = torch.zeros(1)
+    u_L7, nb_chunks = wph_op.preconfigure([u_CMB,torch.from_numpy(Mixture).to(device) - u_dust - u_CMB], cross=True, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_L7, i, norm=None, cross=True, ret_indices=True, pbc=pbc)
+        # Loss F1
+        loss_F1_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[0]) - coeffs_target_L7[0,0][indices]) / std_L7[0,0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L7[indices] / std_L7[1,0][indices],nan=0)
+        loss_F1_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[0]) - coeffs_target_L7[1,0][indices]) * kept_coeffs ) ** 2)
+        loss_F1_real = loss_F1_real / real_coeffs_number_L7
+        loss_F1_imag = loss_F1_imag / imag_coeffs_number_L7
+        # Loss F2
+        loss_F2_real = torch.sum(torch.abs( (torch.real(coeffs_chunk[1]) - coeffs_target_L7[0,1][indices]) / std_L7[0,1][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L7[indices] / std_L7[1,1][indices],nan=0)
+        loss_F2_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk[1]) - coeffs_target_L7[1,1][indices]) * kept_coeffs ) ** 2)
+        loss_F2_real = loss_F2_real / real_coeffs_number_L7
+        loss_F2_imag = loss_F2_imag / imag_coeffs_number_L7
+        #
+        loss_F1_real.backward(retain_graph=True)
+        loss_F1_imag.backward(retain_graph=True)
+        loss_F2_real.backward(retain_graph=True)
+        loss_F2_imag.backward(retain_graph=True)
+        #
+        loss_tot_7_F1_real += loss_F1_real.detach().cpu()
+        loss_tot_7_F1_imag += loss_F1_imag.detach().cpu()
+        loss_tot_7_F2_real += loss_F2_real.detach().cpu()
+        loss_tot_7_F2_imag += loss_F2_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_F1_real, loss_F1_imag, loss_F2_real, loss_F2_imag
+        
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    loss_tot = loss_tot_1_F1_real + loss_tot_1_F1_imag + loss_tot_1_F2_real + loss_tot_1_F2_imag + loss_tot_2_real + loss_tot_2_imag + loss_tot_3_F1_real + loss_tot_3_F1_imag + loss_tot_3_F2_real + loss_tot_3_F2_imag + loss_tot_4_real + loss_tot_4_imag + loss_tot_5_F1_real + loss_tot_5_F1_imag + loss_tot_5_F2_real + loss_tot_5_F2_imag
+    loss_tot = loss_tot_1_F1_real + loss_tot_1_F1_imag + loss_tot_1_F2_real + loss_tot_1_F2_imag + loss_tot_2_real + loss_tot_2_imag + loss_tot_3_F1_real + loss_tot_3_F1_imag + loss_tot_3_F2_real + loss_tot_3_F2_imag + loss_tot_4_real + loss_tot_4_imag + loss_tot_5_F1_real + loss_tot_5_F1_imag + loss_tot_5_F2_real + loss_tot_5_F2_imag + loss_tot_6_F1_real + loss_tot_6_F1_imag + loss_tot_6_F2_real + loss_tot_6_F2_imag + loss_tot_7_F1_real + loss_tot_7_F1_imag + loss_tot_7_F2_real + loss_tot_7_F2_imag
     
     print("L = "+str(round(loss_tot.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -507,6 +615,16 @@ def objective2(x):
     print("L5 F1 imag = "+str(round(loss_tot_5_F1_imag.item(),3)))
     print("L5 F2 real = "+str(round(loss_tot_5_F2_real.item(),3)))
     print("L5 F2 imag = "+str(round(loss_tot_5_F2_imag.item(),3)))
+    # L6
+    print("L6 F1 real = "+str(round(loss_tot_6_F1_real.item(),3)))
+    print("L6 F1 imag = "+str(round(loss_tot_6_F1_imag.item(),3)))
+    print("L6 F2 real = "+str(round(loss_tot_6_F2_real.item(),3)))
+    print("L6 F2 imag = "+str(round(loss_tot_6_F2_imag.item(),3)))
+    # L7
+    print("L7 F1 real = "+str(round(loss_tot_7_F1_real.item(),3)))
+    print("L7 F1 imag = "+str(round(loss_tot_7_F1_imag.item(),3)))
+    print("L7 F2 real = "+str(round(loss_tot_7_F2_real.item(),3)))
+    print("L7 F2 imag = "+str(round(loss_tot_7_F2_imag.item(),3)))
     print("")
 
     eval_cnt += 1
@@ -596,6 +714,10 @@ if __name__ == "__main__":
     relevant_imaginary_coeffs_L4 = torch.where(torch.abs(coeffs_imag_L4) > 1e-6,1,0)
     coeffs_imag_L5 = torch.imag(wph_op.apply([Current_maps0[0],Current_maps0[2]],norm=None,cross=True,pbc=pbc))
     relevant_imaginary_coeffs_L5 = torch.where(torch.abs(coeffs_imag_L5) > 1e-6,1,0)
+    coeffs_imag_L6 = torch.imag(wph_op.apply([Current_maps0[0],Noise[0]],norm=None,cross=True,pbc=pbc))
+    relevant_imaginary_coeffs_L6 = torch.where(torch.abs(coeffs_imag_L6) > 1e-6,1,0)
+    coeffs_imag_L7 = torch.imag(wph_op.apply([CMB[0],Noise[0]],norm=None,cross=True,pbc=pbc))
+    relevant_imaginary_coeffs_L7 = torch.where(torch.abs(coeffs_imag_L7) > 1e-6,1,0)
     
     # Computation of the coeffs and std
     bias_L1, std_L1 = compute_complex_bias_std_L1(torch.from_numpy(Current_maps0[:n_freq]).to(device))
@@ -603,6 +725,8 @@ if __name__ == "__main__":
     coeffs_target_L3, std_L3 = compute_complex_mean_std_L3()
     bias_L4, std_L4 = compute_complex_bias_std_L4(torch.from_numpy(Current_maps0[:n_freq]).to(device))
     mean_L5, std_L5 = compute_complex_mean_std_L5(torch.from_numpy(Current_maps0[:n_freq]).to(device))
+    mean_L6, std_L6 = compute_complex_mean_std_L6(torch.from_numpy(Current_maps0[:n_freq]).to(device))
+    coeffs_target_L7, std_L7 = compute_complex_mean_std_L7()
     
     # Compute the number of coeffs
     # L1
@@ -625,6 +749,14 @@ if __name__ == "__main__":
     real_coeffs_number_L5 = len(torch.real(wph_op.apply([torch.from_numpy(Current_maps0[0]).to(device),torch.from_numpy(Current_maps0[2]).to(device)],norm=None,cross=True,pbc=pbc)))
     kept_coeffs_L5 = torch.nan_to_num(relevant_imaginary_coeffs_L5 / std_L5[1,0],nan=0)
     imag_coeffs_number_L5 = torch.where(torch.sum(torch.where(kept_coeffs_L5>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L5>0,1,0))).item()
+    # L6
+    real_coeffs_number_L6 = len(torch.real(wph_op.apply([torch.from_numpy(Current_maps0[0]).to(device),torch.from_numpy(Noise[0]).to(device)],norm=None,cross=True,pbc=pbc)))
+    kept_coeffs_L6 = torch.nan_to_num(relevant_imaginary_coeffs_L6 / std_L6[1,0],nan=0)
+    imag_coeffs_number_L6 = torch.where(torch.sum(torch.where(kept_coeffs_L6>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L6>0,1,0))).item()
+    # L7
+    real_coeffs_number_L7 = len(torch.real(wph_op.apply([torch.from_numpy(CMB[0]).to(device),torch.from_numpy(Noise[0]).to(device)],norm=None,cross=True,pbc=pbc)))
+    kept_coeffs_L7 = torch.nan_to_num(relevant_imaginary_coeffs_L7 / std_L7[1,0],nan=0)
+    imag_coeffs_number_L7 = torch.where(torch.sum(torch.where(kept_coeffs_L7>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_L7>0,1,0))).item()
     
     Current_maps = Current_maps0
     
@@ -649,6 +781,8 @@ if __name__ == "__main__":
         coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0))) # estimation of the unbiased coefficients
         # L5
         coeffs_target_L5, std_L5 = compute_complex_mean_std_L5(Current_maps[:n_freq])
+        # L6
+        coeffs_target_L6, std_L6 = compute_complex_mean_std_L6(Current_maps[:n_freq])
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
