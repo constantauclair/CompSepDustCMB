@@ -633,7 +633,7 @@ def objective2(x):
     loss_tot_8_imag = torch.zeros(1)
     u_L8, nb_chunks = wph_op.preconfigure([u_CMB,torch.from_numpy(TCMB).to(device)], cross=True, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u_L8, i, norm=None, ret_indices=True, pbc=pbc)
+        coeffs_chunk, indices = wph_op.apply(u_L8, i, cross=True, norm=None, ret_indices=True, pbc=pbc)
         # Loss
         loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L8[0][indices]) / std_L8[0][indices] ) ** 2)
         kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L8[indices] / std_L8[1][indices],nan=0)
