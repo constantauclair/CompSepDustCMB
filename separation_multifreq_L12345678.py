@@ -145,9 +145,22 @@ def create_batch(n_freq, n_maps, n, device, batch_size):
             batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
+def create_mono_batch(n_maps, n, device, batch_size):
+    x = n_maps//batch_size
+    if n_maps % batch_size != 0:
+        batch = torch.zeros([x+1,batch_size,M,N])
+        for i in range(x):
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+        batch[x] = n[x*batch_size:,:,:]
+    else:
+        batch = torch.zeros([x,batch_size,M,N])
+        for i in range(x):
+            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+    return batch.to(device)
+
 Noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
 CMB_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_syn).to(device), device=device, batch_size=batch_size)
-TCMB_batch = create_batch(1, Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)[0]
+TCMB_batch = create_mono_batch(Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)[0]
 
 def compute_bias_std_L1(x):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
