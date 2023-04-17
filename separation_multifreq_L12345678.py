@@ -348,7 +348,7 @@ def compute_complex_mean_std_L8():
         batch_COEFFS = torch.zeros((this_batch_size,coeffs_number)).type(dtype=coeffs_ref.type())
         cmb, nb_chunks = wph_op.preconfigure([CMB_batch[0,i],TCMB_batch[i]], cross=True, pbc=pbc)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(cmb, j, norm=None, ret_indices=True, pbc=pbc)
+            coeffs_chunk, indices = wph_op.apply(cmb, j, cross=True, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=coeffs_ref.type())
             del coeffs_chunk, indices
         COEFFS[computed_CMB:computed_CMB+this_batch_size] = batch_COEFFS
