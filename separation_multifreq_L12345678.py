@@ -160,7 +160,7 @@ def create_mono_batch(n_maps, n, device, batch_size):
 
 Noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
 CMB_batch = create_batch(n_freq, Mn, torch.from_numpy(CMB_syn).to(device), device=device, batch_size=batch_size)
-TCMB_batch = create_mono_batch(Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)[0]
+TCMB_batch = create_mono_batch(Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)
 
 def compute_bias_std_L1(x):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
