@@ -856,4 +856,4 @@ if __name__ == "__main__":
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,CMB,Noise,Current_maps[:n_freq],np.array([Current_maps[n_freq],Current_maps[n_freq]]),Mixture-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]),Current_maps0[:n_freq]])        
+        np.save(file_name, [Mixture,Dust,CMB,np.array([TCMB,TCMB]),Noise,Current_maps[:n_freq],np.array([Current_maps[n_freq],Current_maps[n_freq]]),Mixture-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]),Current_maps0[:n_freq]])        
