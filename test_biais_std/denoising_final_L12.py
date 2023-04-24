@@ -18,9 +18,9 @@ L = 4
 dn = 2
 pbc = True
 
-SNR = 0.5
+SNR = 1
 
-file_name="denoising_final_L12_SNR=0,5_true_noisy_test.npy"
+file_name="denoising_final_L12_SNR=1.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -49,13 +49,9 @@ Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
 
 Dust = (Dust - np.mean(Dust)) / np.std(Dust)
 
-Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR / 2 ###
+Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
 
-Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR / 2 ###
-
-###
-Dust = Dust + Noise
-###
+Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
 
 Mixture = Dust + Noise
 
