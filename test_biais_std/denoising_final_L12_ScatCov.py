@@ -81,7 +81,7 @@ def compute_bias_std(x, only_S11=False):
     computed_noise = 0
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
-        batch_COEFFS = st_calc.scattering_cov_constant(x + noise_batch[i], only_S11=only_S11)
+        batch_COEFFS = st_calc.scattering_cov_constant(x + noise_batch[i], only_S11=only_S11) - coeffs_ref
         COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
         computed_noise += this_batch_size
         del batch_COEFFS, this_batch_size
@@ -187,13 +187,13 @@ if __name__ == "__main__":
         # Bias computation
         bias_L1, std_L1 = compute_bias_std(Dust_tilde0,only_S11=True)
         
-        print("bias L1 =", bias_L1)
-        print("std_L1 =", std_L1)
+        #print("bias L1 =", bias_L1)
+        #print("std_L1 =", std_L1)
         
         # Coeffs target computation
         coeffs_target_L1 = st_calc.scattering_cov_constant(torch.from_numpy(Mixture), only_S11=True) - bias_L1 # estimation of the unbiased coefficients
         
-        print("coeffs_target_L1 =", coeffs_target_L1)
+        #print("coeffs_target_L1 =", coeffs_target_L1)
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
