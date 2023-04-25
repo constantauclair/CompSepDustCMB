@@ -20,11 +20,11 @@ SNR = 1
 
 file_name="denoising_final_L12_SNR=1_ScatCov.npy"
 
-n_step1 = 5
-iter_per_step1 = 50
+n_step1 = 10
+iter_per_step1 = 100
 
 n_step2 = 10
-iter_per_step2 = 50
+iter_per_step2 = 200
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -110,8 +110,9 @@ def objective1(x):
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    print("L = "+str(round(loss_tot_1.item(),3))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
-    print("")
+    if eval_cnt % 10 == 0:
+        print("L = "+str(round(loss_tot_1.item(),3))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
+        print("")
     
     eval_cnt += 1
     return loss_tot_1.item(), u_grad.ravel()
@@ -140,11 +141,12 @@ def objective2(x):
     
     loss_tot = loss_tot_1 + loss_tot_2
     
-    print("L = "+str(round(loss_tot.item(),3)))
-    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
-    print("L1 = "+str(round(loss_tot_1.item(),3)))
-    print("L2 = "+str(round(loss_tot_2.item(),3)))
-    print("")
+    if eval_cnt % 10 == 0:
+        print("L = "+str(round(loss_tot.item(),3)))
+        print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+        print("L1 = "+str(round(loss_tot_1.item(),3)))
+        print("L2 = "+str(round(loss_tot_2.item(),3)))
+        print("")
 
     eval_cnt += 1
     return loss_tot.item(), u_grad.ravel()
