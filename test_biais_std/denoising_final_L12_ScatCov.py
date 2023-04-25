@@ -94,7 +94,8 @@ def compute_bias_std(x, only_S11=False):
 
 def objective1(x):
     global eval_cnt
-    print(f"Evaluation: {eval_cnt}")
+    if eval_cnt % 10 == 0:
+        print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
     
     # Reshape x
@@ -119,7 +120,8 @@ def objective1(x):
 
 def objective2(x):
     global eval_cnt
-    print(f"Evaluation: {eval_cnt}")
+    if eval_cnt % 10 == 0:
+        print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
     
     # Reshape x
