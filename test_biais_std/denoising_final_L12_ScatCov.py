@@ -114,7 +114,7 @@ def objective1(x):
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
     if eval_cnt % print_loss_freq == 0:
-        print("L = "+str(round(loss_tot_1.item(),3))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
+        print("L = "+str(round(loss_tot_1.item(),5))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
         print("")
     
     eval_cnt += 1
@@ -146,10 +146,10 @@ def objective2(x):
     loss_tot = loss_tot_1 + loss_tot_2
     
     if eval_cnt % print_loss_freq == 0:
-        print("L = "+str(round(loss_tot.item(),3)))
+        print("L = "+str(round(loss_tot.item(),5)))
         print("(computed in "+str(round(time.time() - start_time,3))+"s)")
-        print("L1 = "+str(round(loss_tot_1.item(),3)))
-        print("L2 = "+str(round(loss_tot_2.item(),3)))
+        print("L1 = "+str(round(loss_tot_1.item(),5)))
+        print("L2 = "+str(round(loss_tot_2.item(),5)))
         print("")
 
     eval_cnt += 1
@@ -210,6 +210,8 @@ if __name__ == "__main__":
     
     # Computation of the coeffs and std
     coeffs_target_L2, std_L2 = compute_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
+    
+    print("coeffs_target_L2 =", coeffs_target_L2)
     
     Dust_tilde = Dust_tilde0
     
