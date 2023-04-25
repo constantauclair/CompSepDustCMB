@@ -26,6 +26,8 @@ iter_per_step1 = 100
 n_step2 = 10
 iter_per_step2 = 200
 
+print_loss_freq = 20
+
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -94,7 +96,7 @@ def compute_bias_std(x, only_S11=False):
 
 def objective1(x):
     global eval_cnt
-    if eval_cnt % 10 == 0:
+    if eval_cnt % print_loss_freq == 0:
         print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
     
@@ -111,7 +113,7 @@ def objective1(x):
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
-    if eval_cnt % 10 == 0:
+    if eval_cnt % print_loss_freq == 0:
         print("L = "+str(round(loss_tot_1.item(),3))+" (computed in "+str(round(time.time() - start_time,3))+"s)")
         print("")
     
@@ -120,7 +122,7 @@ def objective1(x):
 
 def objective2(x):
     global eval_cnt
-    if eval_cnt % 10 == 0:
+    if eval_cnt % print_loss_freq == 0:
         print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
     
@@ -143,7 +145,7 @@ def objective2(x):
     
     loss_tot = loss_tot_1 + loss_tot_2
     
-    if eval_cnt % 10 == 0:
+    if eval_cnt % print_loss_freq == 0:
         print("L = "+str(round(loss_tot.item(),3)))
         print("(computed in "+str(round(time.time() - start_time,3))+"s)")
         print("L1 = "+str(round(loss_tot_1.item(),3)))
