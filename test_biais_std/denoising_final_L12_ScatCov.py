@@ -74,7 +74,7 @@ def create_batch(n_maps, n, device, batch_size):
 
 noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
 
-def compute_bias_std(x, only_S11=False):
+def compute_bias_std_L1(x, only_S11=False):
     coeffs_ref = st_calc.scattering_cov_constant(x, only_S11=only_S11)
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
@@ -82,6 +82,22 @@ def compute_bias_std(x, only_S11=False):
     for i in range(noise_batch.shape[0]):
         this_batch_size = len(noise_batch[i])
         batch_COEFFS = st_calc.scattering_cov_constant(x + noise_batch[i], only_S11=only_S11) - coeffs_ref
+        COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
+        computed_noise += this_batch_size
+        del batch_COEFFS, this_batch_size
+        sys.stdout.flush() # Flush the standard output
+    bias = torch.mean(COEFFS,axis=0)
+    std = torch.std(COEFFS,axis=0)
+    return bias, std
+
+def compute_bias_std_L2(only_S11=False):
+    coeffs_ref = st_calc.scattering_cov_constant(torch.from_numpy(Noise), only_S11=only_S11)
+    coeffs_number = len(coeffs_ref)
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
+    computed_noise = 0
+    for i in range(noise_batch.shape[0]):
+        this_batch_size = len(noise_batch[i])
+        batch_COEFFS = st_calc.scattering_cov_constant(noise_batch[i], only_S11=only_S11)
         COEFFS[computed_noise:computed_noise+this_batch_size] = batch_COEFFS
         computed_noise += this_batch_size
         del batch_COEFFS, this_batch_size
@@ -185,7 +201,7 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias_L1, std_L1 = compute_bias_std(Dust_tilde0,only_S11=True)
+        bias_L1, std_L1 = compute_bias_std_L1(Dust_tilde0,only_S11=True)
         
         #print("bias L1 =", bias_L1)
         #print("std_L1 =", std_L1)
@@ -209,9 +225,7 @@ if __name__ == "__main__":
     eval_cnt = 0
     
     # Computation of the coeffs and std
-    coeffs_target_L2, std_L2 = compute_bias_std(torch.from_numpy(Dust_tilde0*0).to(device))
-    
-    print("coeffs_target_L2 =", coeffs_target_L2[:10])
+    coeffs_target_L2, std_L2 = compute_bias_std_L2()
     
     Dust_tilde = Dust_tilde0
     
@@ -222,7 +236,7 @@ if __name__ == "__main__":
         Dust_tilde = torch.from_numpy(Dust_tilde).to(device)
         
         # Bias computation
-        bias_L1, std_L1 = compute_bias_std(Dust_tilde)
+        bias_L1, std_L1 = compute_bias_std_L1(Dust_tilde)
         
         # Coeffs target computation
         coeffs_d = st_calc.scattering_cov_constant(torch.from_numpy(Mixture))
