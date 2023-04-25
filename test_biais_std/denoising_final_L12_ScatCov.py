@@ -211,7 +211,7 @@ if __name__ == "__main__":
         
         #print("coeffs_target_L1 =", coeffs_target_L1)
         #print("true_coeffs_L1 =", st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
-        print("true-target/std =", (st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True)-coeffs_target_L1)/std_L1)
+        print("true-target/true =", (st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True)-coeffs_target_L1)/st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
