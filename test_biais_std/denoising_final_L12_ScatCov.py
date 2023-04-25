@@ -187,13 +187,14 @@ if __name__ == "__main__":
         # Bias computation
         bias_L1, std_L1 = compute_bias_std(Dust_tilde0,only_S11=True)
         
-        #print("bias L1 =", bias_L1)
-        #print("std_L1 =", std_L1)
+        print("bias L1 =", bias_L1)
+        print("std_L1 =", std_L1)
         
         # Coeffs target computation
         coeffs_target_L1 = st_calc.scattering_cov_constant(torch.from_numpy(Mixture), only_S11=True) - bias_L1 # estimation of the unbiased coefficients
         
-        #print("coeffs_target_L1 =", coeffs_target_L1)
+        print("coeffs_target_L1 =", coeffs_target_L1)
+        print("true_coeffs_L1 =", st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
