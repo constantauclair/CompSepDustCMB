@@ -7,10 +7,17 @@ import numpy as np
 import torch
 import scipy.optimize as opt
 import scattering as scat
+import argparse
 
 #######
 # INPUT PARAMETERS
 #######
+
+parser = argparse.ArgumentParser()
+parser.add_argument('index', type=int)
+args = parser.parse_args()
+
+label_sep = args.index
 
 M, N = 256, 256
 J = 6
@@ -18,7 +25,7 @@ L = 4
 
 SNR = 1
 
-file_name="denoising_final_L12_SNR=1_ScatCov.npy"
+file_name="denoising_final_L12_SNR=1_ScatCov_"+str(label_sep)+".npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -41,9 +48,9 @@ n_batch = int(Mn/batch_size)
 
 Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
 
-Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
+Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[np.random.randint(Mn)].real
 
-Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
+Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[:Mn].real
 
 ## Normalizing the data
 
@@ -211,7 +218,7 @@ if __name__ == "__main__":
         
         #print("coeffs_target_L1 =", coeffs_target_L1)
         #print("true_coeffs_L1 =", st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
-        print("true-target/true =", (st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True)-coeffs_target_L1)/st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
+        #print("true-target/true =", (st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True)-coeffs_target_L1)/st_calc.scattering_cov_constant(torch.from_numpy(Dust), only_S11=True))
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
