@@ -38,7 +38,7 @@ print_loss_freq = 1
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
-device = 0 # GPU to use
+device = "gpu" # GPU to use
 
 Mn = 200 # Number of noises per iteration
 batch_size = 10
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     total_start_time = time.time()
     print("Building calculator...")
     start_time = time.time()
-    st_calc = scat.Scattering2d(M, N, J, L, device=device) 
+    st_calc = scat.Scattering2d(M, N, J, L) 
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## Computing coeffs number
