@@ -187,7 +187,7 @@ if __name__ == "__main__":
     total_start_time = time.time()
     print("Building calculator...")
     start_time = time.time()
-    st_calc = scat.Scattering2d(M, N, J, L) 
+    st_calc = scat.Scattering2d(M, N, J, L, device=device) 
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## Computing coeffs number
