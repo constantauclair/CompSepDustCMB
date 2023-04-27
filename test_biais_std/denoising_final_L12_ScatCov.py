@@ -25,7 +25,7 @@ L = 4
 
 SNR = 1
 
-file_name="denoising_final_L12_SNR=1_ScatCov_"+str(label_sep)+".npy"
+file_name="denoising_final_L12_SNR=1_ScatCov_original_"+str(label_sep)+".npy"
 
 n_step1 = 5
 iter_per_step1 = 50
