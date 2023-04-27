@@ -38,7 +38,7 @@ print_loss_freq = 1
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
-device = "gpu" # GPU to use
+device = "cuda:0" # GPU to use
 
 Mn = 200 # Number of noises per iteration
 batch_size = 10
