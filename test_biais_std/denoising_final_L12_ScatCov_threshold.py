@@ -25,12 +25,14 @@ L = 4
 threshold = 1e-2
 SNR = 1
 
+print("threshold",threshold)
+
 file_name="denoising_final_L12_SNR=1_ScatCov_threshold_"+str(label_sep)+".npy"
 
-n_step1 = 1#5
+n_step1 = 5
 iter_per_step1 = 50
 
-n_step2 = 1#10
+n_step2 = 10
 iter_per_step2 = 50
 
 print_loss_freq = 1
