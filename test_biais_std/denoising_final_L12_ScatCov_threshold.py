@@ -22,7 +22,7 @@ label_sep = args.index
 M, N = 256, 256
 J = 6
 L = 4
-threshold = 1e-4
+threshold = 1e-1
 SNR = 1
 
 file_name="denoising_final_L12_SNR=1_ScatCov_threshold_"+str(label_sep)+".npy"
