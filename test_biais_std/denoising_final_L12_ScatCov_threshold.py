@@ -69,9 +69,9 @@ Mixture = Dust + Noise
 def compute_S11(x):
     S11 = st_calc.scattering_cov_constant(x,only_S11=True)
     if len(np.shape(x)) == 2:
-        return S11[0]
+        return S11[0].flatten()
     if len(np.shape(x)) == 3:
-        return S11
+        return S11.flatten()
     
 def compute_mask(x,threshold):
     return scat.compute_threshold_mask(st_calc.scattering_cov_constant(x,normalization=True),threshold)
@@ -79,9 +79,9 @@ def compute_mask(x,threshold):
 def compute_coeffs(x,mask):
     coeffs = scat.threshold_coeffs(st_calc.scattering_cov_constant(x,normalization=False),mask)
     if len(np.shape(x)) == 2:
-        return coeffs[0]
+        return coeffs[0].flatten()
     if len(np.shape(x)) == 3:
-        return coeffs
+        return coeffs.flatten()
     
 def create_batch(n_maps, n, device, batch_size):
     x = n_maps//batch_size
