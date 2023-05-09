@@ -243,7 +243,8 @@ if __name__ == "__main__":
         bias_L1, std_L1 = compute_bias_std_L1_S11(Dust_tilde0)
         
         # Coeffs target computation
-        coeffs_target_L1 = compute_S11(torch.from_numpy(Mixture)) - bias_L1 # estimation of the unbiased coefficients
+        #coeffs_target_L1 = compute_S11(torch.from_numpy(Mixture)) - bias_L1 # estimation of the unbiased coefficients
+        coeffs_target_L1 = compute_S11(torch.from_numpy(Dust)) # cheat
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
@@ -272,7 +273,8 @@ if __name__ == "__main__":
         bias_L1, std_L1 = compute_bias_std_L1(Dust_tilde,mask)
         
         # Coeffs target computation
-        coeffs_target_L1 = compute_coeffs(torch.from_numpy(Mixture),mask) - bias_L1 # estimation of the unbiased coefficients
+        #coeffs_target_L1 = compute_coeffs(torch.from_numpy(Mixture),mask) - bias_L1 # estimation of the unbiased coefficients
+        coeffs_target_L1 = compute_coeffs(torch.from_numpy(Dust),mask) # estimation of the unbiased coefficients
         coeffs_target_L2, std_L2 = compute_bias_std_L2(mask)
         
         # Minimization
