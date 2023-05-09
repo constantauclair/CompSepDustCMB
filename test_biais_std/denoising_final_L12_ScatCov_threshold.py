@@ -69,9 +69,9 @@ Mixture = Dust + Noise
 def compute_S11(x):
     S11 = st_calc.scattering_cov_constant(x,only_S11=True)
     if len(np.shape(x)) == 2:
-        return S11[0].flatten()
+        return S11[0]
     if len(np.shape(x)) == 3:
-        return S11.flatten()
+        return S11
     
 def compute_mask(x,threshold):
     return scat.compute_threshold_mask(st_calc.scattering_cov_constant(x,normalization=True),threshold)
@@ -79,9 +79,9 @@ def compute_mask(x,threshold):
 def compute_coeffs(x,mask):
     coeffs = scat.threshold_coeffs(st_calc.scattering_cov_constant(x,normalization=False),mask)
     if len(np.shape(x)) == 2:
-        return coeffs[0].flatten()
+        return coeffs[0]
     if len(np.shape(x)) == 3:
-        return coeffs.flatten()
+        return coeffs
     
 def create_batch(n_maps, n, device, batch_size):
     x = n_maps//batch_size
@@ -100,7 +100,6 @@ noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=de
 
 def compute_bias_std_L1_S11(x):
     coeffs_ref = compute_S11(x)
-    print(coeffs_ref.size())
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_noise = 0
