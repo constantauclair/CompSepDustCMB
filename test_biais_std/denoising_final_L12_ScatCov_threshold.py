@@ -100,6 +100,7 @@ noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=de
 
 def compute_bias_std_L1_S11(x):
     coeffs_ref = compute_S11(x)
+    print(coeffs_ref.size())
     coeffs_number = len(coeffs_ref)
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=coeffs_ref.type())
     computed_noise = 0
