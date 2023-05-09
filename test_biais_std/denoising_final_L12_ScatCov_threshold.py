@@ -268,14 +268,16 @@ if __name__ == "__main__":
         
         # Compute the mask for coeffs
         mask = compute_mask(Dust_tilde,threshold)
-        
+        print("Mask computed !")
         # Bias computation
         bias_L1, std_L1 = compute_bias_std_L1(Dust_tilde,mask)
+        print("Bias computed !")
         
         # Coeffs target computation
         #coeffs_target_L1 = compute_coeffs(torch.from_numpy(Mixture),mask) - bias_L1 # estimation of the unbiased coefficients
         coeffs_target_L1 = compute_coeffs(torch.from_numpy(Dust),mask) # estimation of the unbiased coefficients
         coeffs_target_L2, std_L2 = compute_bias_std_L2(mask)
+        print("Target coeffs computed !")
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Dust_tilde0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
