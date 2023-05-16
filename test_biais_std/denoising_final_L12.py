@@ -8,44 +8,61 @@ import torch
 import scipy.optimize as opt
 import pywph as pw
 
+'''
+This program is a denoising algorithm coded by Constant Auclair, PhD student at LPENS. 
+It is directly based on Régaldo-Saint Blancard et al. (2021) and Delouis et al. (2022). 
+It requires the pyWPH package : https://github.com/bregaldo/pywph
+
+This algorithm allows to recover the WPH statistics of a non-Gaussian field (a Galactic thermal dust emission
+map in the original case) which is contaminated by noise. It requires to have a precise statistical model of the noise.
+The algorithm principle is the following. It performs a gradient descent on a map under WPH statistical constraints.
+The convergence to the proper WPH statistics is done by using a bias method, meaning that we estimate how the noise
+biases the WPH statistics of the dust map and we use it to debiase it. This is done several times in order to converge
+to the proper statistics. The WPH statistics of the residual noise map are also contrained to converge to that of the noise.
+In these loss functions, the WPH statistics are normalized by their standard deviation computed using the noise syntheses.
+
+This is an exemple code and not a final version.
+If you have any question or remark : constant.auclair@phys.ens.fr
+'''
+
 #######
 # INPUT PARAMETERS
 #######
 
-M, N = 256, 256
-J = 6
-L = 4
-dn = 2
-pbc = True
+M, N = 256, 256 # size of the map
+J = 6 # max dyadic scale analyzed
+L = 4 # number of angles considered
+dn = 2 # number of translation
+pbc = True # periodic boundary conditions
 
-SNR = 1
+SNR = 1 # signal-to-noise ratio 
 
-file_name="denoising_final_L12_SNR=1.npy"
+file_name="denoising_final_L12_SNR=1.npy" # filename of the separation results
 
-n_step1 = 5
-iter_per_step1 = 50
+n_step1 = 5 # number of eras for first optimization
+iter_per_step1 = 50 # number of iteration per step for first optimization
 
-n_step2 = 10
-iter_per_step2 = 50
+n_step2 = 10 # number of eras for second optimization
+iter_per_step2 = 50 # number of iteration per step for second optimization
 
-optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
-optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20} # optimization parameters for first optimization
+optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20} # optimization parameters for second optimization
 
 device = 0 # GPU to use
 
-Mn = 200 # Number of noises per iteration
-batch_size = 10
-n_batch = int(Mn/batch_size)
+Mn = 200 # Number of noises used
+batch_size = 10 # batch size for the noise computation
+n_batch = int(Mn/batch_size) # number of batches
 
 ## Loading the data
 
-Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2]
+Dust = np.load('../data/I_maps_v2_leo.npy')[0,0][::2,::2] # mock dust map
 
-Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real
+Noise = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[0].real # noise map
 
-Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real
+Noise_syn = np.load('../data/BICEP_noise_QiU_217GHZ.npy')[1:Mn+1].real # noise syntheses
 
-## Normalizing the data
+## Normalizing the data (put to mean 0 and correct std for the chosen SNR)
 
 Dust = (Dust - np.mean(Dust)) / np.std(Dust)
 
@@ -53,12 +70,15 @@ Noise = (Noise - np.mean(Noise)) / np.std(Noise) / SNR
 
 Noise_syn = (Noise_syn - np.mean(Noise_syn)) / np.std(Noise_syn) / SNR
 
+# Building of the mixture map
+
 Mixture = Dust + Noise
 
 #######
 # USEFUL FUNCTIONS
 #######
 
+# Creates batch of noise syntheses to accelerate computation
 def create_batch(n_maps, n, device, batch_size):
     x = n_maps//batch_size
     if n_maps % batch_size != 0:
@@ -72,6 +92,7 @@ def create_batch(n_maps, n, device, batch_size):
             batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
+# Compute how the noise biases the WPH statistics of the map x, and also give the std of these biased statistics
 def compute_bias_std(x):
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
@@ -94,6 +115,7 @@ def compute_bias_std(x):
     std = torch.std(COEFFS,axis=0)
     return bias, std
 
+# Compute how the noise biases the WPH statistics of the map x, and also give the std of these biased statistics (complex version)
 def compute_complex_bias_std(x):
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
@@ -116,6 +138,7 @@ def compute_complex_bias_std(x):
     std = [torch.std(torch.real(COEFFS),axis=0),torch.std(torch.imag(COEFFS),axis=0)]
     return bias, std
 
+# Compute how the mean and std of the noise WPH statistics (complex version)
 def compute_complex_bias_std_noise(x):
     noise_batch = create_batch(Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
@@ -142,6 +165,7 @@ def compute_complex_bias_std_noise(x):
 # OBJECTIVE FUNCTIONS
 #######
 
+# Minimization function for first optimization 
 def objective1(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
@@ -170,6 +194,7 @@ def objective1(x):
     eval_cnt += 1
     return loss_tot.item(), u_grad.ravel()
 
+# Minimization function for second optimization 
 def objective2(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
@@ -277,7 +302,6 @@ if __name__ == "__main__":
     
     # Identification of the irrelevant imaginary parts of the coeffs
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
-    #wph_op.load_model(["S11","S00","L"])
     wph_op.clear_normalization()
     coeffs_imag_dust = torch.imag(wph_op.apply(Dust_tilde0,norm=None,pbc=pbc))
     relevant_imaginary_coeffs_L1 = torch.where(torch.abs(coeffs_imag_dust) > 1e-6,1,0)
