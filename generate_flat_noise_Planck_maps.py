@@ -14,7 +14,7 @@ N = 512
 freq = 217
 
 n_noise_maps = 100
-noise_folder = '/data/IQU_Planck_data/Planck_noise_fits/'
+noise_folder = 'data/IQU_Planck_data/Planck_noise_fits/'
 
 IQU_Noise_maps = np.zeros((3,n_noise_maps,N,N))
 for i in range(n_noise_maps):
