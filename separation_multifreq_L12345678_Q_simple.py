@@ -206,8 +206,91 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
         std = torch.std(COEFFS,axis=1)
     return bias, std
 
-# def = a function that compute a mask for too small coeffs (real and imag)
-# def = a function that compute the loss terms
+def compute_mask(x,std,real_imag=True):
+    coeffs = wph_op.apply(x,norm=None,pbc=pbc)
+    if not real_imag:
+        mask = torch.logical_and(np.abs(coeffs) > 1e-7, np.abs(std) > 0)
+    if real_imag:
+        mask_real = torch.logical_and(torch.real(coeffs) > 1e-7, std[0] > 0)
+        mask_imag = torch.logical_and(torch.imag(coeffs) > 1e-7, std[1] > 0)
+        mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
+    return mask
+
+def compute_loss(mode,x,coeffs_target,std,mask):
+    # Mode for the first iteration step
+    if mode == 'first_iter':
+        loss_tot_F1 = torch.zeros(1)
+        loss_tot_F2 = torch.zeros(1)
+        u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc)
+        for i in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
+            # Loss F1
+            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0][mask[0,indices]] - coeffs_target[0,indices][mask[0,indices]]) / std[0,indices][mask[0,indices]] ) ** 2) / mask[0].sum()
+            loss_F1.backward(retain_graph=True)
+            loss_tot_F1 += loss_F1.detach().cpu()
+            # Loss F2
+            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1][mask[1,indices]] - coeffs_target[1,indices][mask[1,indices]]) / std[1,indices][mask[1,indices]] ) ** 2) / mask[1].sum()
+            loss_F2.backward(retain_graph=True)
+            loss_tot_F2 += loss_F2.detach().cpu()
+            #
+            del coeffs_chunk, indices, loss_F1, loss_F2
+        return loss_tot_F1, loss_tot_F2
+    # Mode for L1 and L3
+    if mode in ['L1','L3']:
+        loss_tot_F1 = torch.zeros(1)
+        loss_tot_F2 = torch.zeros(1)
+        u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc)
+        for i in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
+            # Loss F1
+            loss_F1 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) / mask[0,0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) / mask[1,0].sum() )
+            loss_F1.backward(retain_graph=True)
+            loss_tot_F1 += loss_F1.detach().cpu()
+            # Loss F2
+            loss_F2 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) / mask[0,1].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) / mask[1,1].sum() )
+            loss_F2.backward(retain_graph=True)
+            loss_tot_F2 += loss_F2.detach().cpu()
+            #
+            del coeffs_chunk, indices, loss_F1, loss_F2
+        return loss_tot_F1, loss_tot_F2
+    # Mode for L2
+    ################################################ REPRENDRE ICI
+    loss_tot = torch.zeros(1)
+    loss_tot_2_imag = torch.zeros(1)
+    u_L2, nb_chunks = wph_op.preconfigure(u_CMB, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_L2, i, norm=None, ret_indices=True, pbc=pbc)
+        # Loss
+        loss_real = torch.sum(torch.abs( (torch.real(coeffs_chunk) - coeffs_target_L2[0][indices]) / std_L2[0][indices] ) ** 2)
+        kept_coeffs = torch.nan_to_num(relevant_imaginary_coeffs_L2[indices] / std_L2[1][indices],nan=0)
+        loss_imag = torch.sum(torch.abs( (torch.imag(coeffs_chunk) - coeffs_target_L2[1][indices]) * kept_coeffs ) ** 2)
+        loss_real = loss_real / real_coeffs_number_L2
+        loss_imag = loss_imag / imag_coeffs_number_L2
+        #
+        loss_real.backward(retain_graph=True)
+        loss_imag.backward(retain_graph=True)
+        #
+        loss_tot_2_real += loss_real.detach().cpu()
+        loss_tot_2_imag += loss_imag.detach().cpu()
+        del coeffs_chunk, indices, loss_real, loss_imag
+    # Mode for L5, L6 and L7
+    if mode in ['L5','L6','L7']:
+        loss_tot_F1 = torch.zeros(1)
+        loss_tot_F2 = torch.zeros(1)
+        u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, cross=True, pbc=pbc)
+        for i in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, cross=True, pbc=pbc)
+            # Loss F1
+            loss_F1 = torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) / mask[0,0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) / mask[1,0].sum()
+            loss_F1.backward(retain_graph=True)
+            loss_tot_F1 += loss_F1.detach().cpu()
+            # Loss F2
+            loss_F2 = torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) / mask[0,1].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) / mask[1,1].sum()
+            loss_F2.backward(retain_graph=True)
+            loss_tot_F2 += loss_F2.detach().cpu()
+            #
+            del coeffs_chunk, indices, loss_F1, loss_F2
+        return loss_tot_F1, loss_tot_F2
 
 #######
 # OBJECTIVE FUNCTIONS
