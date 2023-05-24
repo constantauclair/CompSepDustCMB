@@ -417,7 +417,7 @@ if __name__ == "__main__":
         bias, std = compute_coeffs_mean_std('classic_bias',Noise_batch+CMB_batch.expand(Noise_batch.size()),x=Dust_tilde0, real_imag=False)
         
         # Mask coputation
-        mask = compute_mask(Dust_tilde0, std, real_imag=False)
+        mask = compute_mask(Dust_tilde0, std, real_imag=False).to(device)
                             
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc) - bias.to(device)
