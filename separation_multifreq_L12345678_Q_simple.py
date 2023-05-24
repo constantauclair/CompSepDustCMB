@@ -97,7 +97,7 @@ print("SNR F2 =",np.std(Dust_2)/np.std(CMB+Noise_2))
 
 Mixture = np.array([Mixture_1,Mixture_2])
 
-Dust = np.array([Dust_1,Dust_2]) * 5
+Dust = np.array([Dust_1,Dust_2]) * 10
 
 Noise = np.array([Noise_1,Noise_2])
 
