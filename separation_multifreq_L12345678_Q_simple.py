@@ -213,7 +213,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
 def compute_mask(x,std,real_imag=True,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
     if not real_imag:
-        mask = torch.logical_and(np.abs(coeffs) > 1e-7, np.abs(std) > 0)
+        mask = torch.logical_and(torch.abs(coeffs) > 1e-7, torch.abs(std) > 0)
     if real_imag:
         mask_real = torch.logical_and(torch.real(coeffs) > 1e-7, std[0] > 0)
         mask_imag = torch.logical_and(torch.imag(coeffs) > 1e-7, std[1] > 0)
