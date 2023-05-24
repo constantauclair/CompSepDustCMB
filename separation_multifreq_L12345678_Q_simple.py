@@ -135,7 +135,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure(x.unsqueeze(1).expand(contamination_batch[:,i].size()) + contamination_batch[:,i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type) - wph_op.apply(x, norm=None, pbc=pbc)[:,indices].expand(coeffs_chunk.size()).type(dtype=ref_type)
+                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type) - wph_op.apply(x, norm=None, pbc=pbc)[:,indices].unsqueeze(1).expand(coeffs_chunk.size()).type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
