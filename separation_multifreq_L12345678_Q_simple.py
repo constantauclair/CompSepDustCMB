@@ -47,7 +47,7 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 5
-pbc = False
+pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
