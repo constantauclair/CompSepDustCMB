@@ -427,7 +427,8 @@ if __name__ == "__main__":
         mask = compute_mask(Dust_tilde0, std).to(device)
         
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Dust).to(device), norm=None, pbc=pbc) #wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc) - bias
+        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
+        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias[1],dim=0)))
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
