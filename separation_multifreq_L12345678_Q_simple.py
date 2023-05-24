@@ -138,22 +138,16 @@ CMB_batch = create_mono_batch(Mn, torch.from_numpy(CMB_syn).to(device), device=d
 TCMB_batch = create_mono_batch(Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)
 
 def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=None,x=None,real_imag=True):
-    print('ok 1')
     coeffs_number = wph_op.apply(contamination_batch[0,0], norm=None, pbc=pbc).size(-1)
-    print('ok 2')
     ref_type = type(wph_op.apply(contamination_batch[0,0], norm=None, pbc=pbc))
-    print('ok 3')
     # Mode for L1 
     if mode == 'classic_bias':
-        print('1')
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
         computed_conta = 0
         for i in range(n_batch):
-            print('2')
             batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure(x + contamination_batch[:,i], pbc=pbc)
             for j in range(nb_chunks):
-                print('3')
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
                 batch_COEFFS[:,:,indices] = coeffs_chunk - wph_op.apply(x, norm=None, pbc=pbc)[:,indices]
                 del coeffs_chunk, indices
@@ -433,7 +427,7 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_coeffs_mean_std('classic_bias',torch.from_numpy(Noise_batch).to(device)+torch.from_numpy(CMB_batch).to(device),x=Dust_tilde0, real_imag=False)
+        bias, std = compute_coeffs_mean_std('classic_bias',Noise_batch+CMB_batch,x=Dust_tilde0, real_imag=False)
         
         # Mask coputation
         mask = compute_mask(Dust_tilde0, std, real_imag=False)
@@ -463,10 +457,10 @@ if __name__ == "__main__":
     Current_maps0 = np.array([Dust_tilde0[0],Dust_tilde0[1],np.random.normal(np.mean(CMB),np.std(CMB),size=(M,N))])
     
     # Computation of the coeffs and std
-    coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', torch.from_numpy(CMB_batch).to(device))
-    coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', torch.from_numpy(Noise_batch).to(device))
-    coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', torch.from_numpy(CMB_batch).to(device).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=torch.from_numpy(Noise_batch).to(device))
-    coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', torch.from_numpy(CMB_batch).to(device), cross_contamination_batch=torch.from_numpy(TCMB_batch).to(device))
+    coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', CMB_batch)
+    coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
+    coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
+    coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch, cross_contamination_batch=TCMB_batch)
     
     # Mask computation
     mask_L2 = compute_mask(torch.from_numpy(CMB).to(device),std_L2)
@@ -485,10 +479,10 @@ if __name__ == "__main__":
         Current_maps = torch.from_numpy(Current_maps).to(device)
         
         # Bias computation
-        bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', torch.from_numpy(Noise_batch).to(device)+torch.from_numpy(CMB_batch).to(device), x=torch.from_numpy(Current_maps0[:n_freq]).to(device))
-        bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', torch.from_numpy(Noise_batch).to(device), x=torch.from_numpy(Current_maps0[:n_freq]).to(device))
-        coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_mean', torch.from_numpy(Current_maps0[:n_freq]).to(device).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=torch.from_numpy(CMB_batch).to(device).expand((n_freq,n_batch,batch_size,M,N)))
-        coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', torch.from_numpy(Current_maps0[:n_freq]).to(device).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=torch.from_numpy(Noise_batch).to(device))
+        bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', Noise_batch+CMB_batch, x=Current_maps[:n_freq])
+        bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
+        coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.expand((n_freq,n_batch,batch_size,M,N)))
+        coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
@@ -497,10 +491,10 @@ if __name__ == "__main__":
         coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0)))
         
         # Mask computation
-        mask_L1 = compute_mask(Current_maps0[:n_freq],std_L1)
-        mask_L4 = compute_mask([Current_maps0[0],Current_maps0[1]],std_L4,cross=True)
-        mask_L5 = compute_mask([Current_maps0[:n_freq],Current_maps0[2].expand((2,M,N))],std_L5,cross=True)
-        mask_L6 = compute_mask([Current_maps0[:n_freq],torch.from_numpy(Noise).to(device)],std_L6,cross=True)
+        mask_L1 = compute_mask(Current_maps[:n_freq],std_L1)
+        mask_L4 = compute_mask([Current_maps[0],Current_maps[1]],std_L4,cross=True)
+        mask_L5 = compute_mask([Current_maps[:n_freq],Current_maps[2].expand((2,M,N))],std_L5,cross=True)
+        mask_L6 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L6,cross=True)
         
         # Minimization
         result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
