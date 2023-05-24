@@ -107,35 +107,21 @@ Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
 # USEFUL FUNCTIONS
 #######
 
-def create_batch(n_freq, n_maps, n, device, batch_size):
-    x = n_maps//batch_size
-    if n_maps % batch_size != 0:
-        batch = torch.zeros([n_freq,x+1,batch_size,M,N])
-        for i in range(x):
-            batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
-        batch[:,x] = n[:,x*batch_size:,:,:]
-    else:
-        batch = torch.zeros([n_freq,x,batch_size,M,N])
-        for i in range(x):
-            batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
+def create_batch(n_freq, n, device):
+    batch = torch.zeros([n_freq,n_batch,batch_size,M,N])
+    for i in range(n_batch):
+        batch[:,i] = n[:,i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-def create_mono_batch(n_maps, n, device, batch_size):
-    x = n_maps//batch_size
-    if n_maps % batch_size != 0:
-        batch = torch.zeros([x+1,batch_size,M,N])
-        for i in range(x):
-            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
-        batch[x] = n[x*batch_size:,:,:]
-    else:
-        batch = torch.zeros([x,batch_size,M,N])
-        for i in range(x):
-            batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+def create_mono_batch(n, device):
+    batch = torch.zeros([n_batch,batch_size,M,N])
+    for i in range(n_batch):
+        batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-Noise_batch = create_batch(n_freq, Mn, torch.from_numpy(Noise_syn).to(device), device=device, batch_size=batch_size)
-CMB_batch = create_mono_batch(Mn, torch.from_numpy(CMB_syn).to(device), device=device, batch_size=batch_size)
-TCMB_batch = create_mono_batch(Mn, torch.from_numpy(TCMB_syn).to(device), device=device, batch_size=batch_size)
+Noise_batch = create_batch(n_freq, torch.from_numpy(Noise_syn).to(device), device=device)
+CMB_batch = create_mono_batch(torch.from_numpy(CMB_syn).to(device), device=device)
+TCMB_batch = create_mono_batch(torch.from_numpy(TCMB_syn).to(device), device=device)
 
 def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=None,x=None,real_imag=True):
     coeffs_number = wph_op.apply(contamination_batch[0,0], norm=None, pbc=pbc).size(-1)
