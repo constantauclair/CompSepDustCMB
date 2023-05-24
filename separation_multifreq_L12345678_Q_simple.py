@@ -427,7 +427,7 @@ if __name__ == "__main__":
         Dust_tilde0 = torch.from_numpy(Dust_tilde0).to(device)
         
         # Bias computation
-        bias, std = compute_coeffs_mean_std('classic_bias',Noise_batch+CMB_batch,x=Dust_tilde0, real_imag=False)
+        bias, std = compute_coeffs_mean_std('classic_bias',Noise_batch+CMB_batch.expand(Noise_batch.size()),x=Dust_tilde0, real_imag=False)
         
         # Mask coputation
         mask = compute_mask(Dust_tilde0, std, real_imag=False)
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     # Computation of the coeffs and std
     coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', CMB_batch)
     coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
-    coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
+    coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand(Noise_batch.size()), cross_contamination_batch=Noise_batch)
     coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch, cross_contamination_batch=TCMB_batch)
     
     # Mask computation
@@ -479,7 +479,7 @@ if __name__ == "__main__":
         Current_maps = torch.from_numpy(Current_maps).to(device)
         
         # Bias computation
-        bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', Noise_batch+CMB_batch, x=Current_maps[:n_freq])
+        bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', Noise_batch+CMB_batch.expand(Noise_batch.size()), x=Current_maps[:n_freq])
         bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
         coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.expand((n_freq,n_batch,batch_size,M,N)))
         coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
