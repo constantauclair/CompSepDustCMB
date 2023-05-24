@@ -314,6 +314,9 @@ def objective1(x):
     # Reshape x
     u = x.reshape((n_freq, M, N))
     
+    # Track operations on u
+    u = torch.from_numpy(u).to(device).requires_grad_(True)
+    
     # Compute the loss
     loss_tot_F1, loss_tot_F2 = compute_loss('first_iter',u,coeffs_target,std,mask)
     
