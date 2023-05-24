@@ -208,7 +208,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
     else:
         bias = torch.mean(COEFFS,axis=1)
         std = torch.std(COEFFS,axis=1)
-    return bias, std
+    return bias.to(device), std.to(device)
 
 def compute_mask(x,std,real_imag=True,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
@@ -218,7 +218,7 @@ def compute_mask(x,std,real_imag=True,cross=False):
         mask_real = torch.logical_and(torch.real(coeffs).to(device) > 1e-7, std[0].to(device) > 0)
         mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > 1e-7, std[1].to(device) > 0)
         mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
-    return mask
+    return mask.to(device)
 
 def compute_loss(mode,x,coeffs_target,std,mask):
     x = x.to(device)
@@ -233,10 +233,12 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
             # Loss F1
+            print(mask[0,indices])
             loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0][mask[0,indices]] - coeffs_target[0,indices][mask[0,indices]]) / std[0,indices][mask[0,indices]] ) ** 2) / mask[0].sum()
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
+            print(mask[1,indices])
             loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1][mask[1,indices]] - coeffs_target[1,indices][mask[1,indices]]) / std[1,indices][mask[1,indices]] ) ** 2) / mask[1].sum()
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
@@ -427,7 +429,7 @@ if __name__ == "__main__":
         mask = compute_mask(Dust_tilde0, std, real_imag=False).to(device)
                             
         # Coeffs target computation
-        coeffs_target = wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc) - bias.to(device)
+        coeffs_target = wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc) - bias
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
