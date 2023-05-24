@@ -126,6 +126,8 @@ TCMB_batch = create_mono_batch(torch.from_numpy(TCMB_syn).to(device), device=dev
 def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=None,x=None,real_imag=True):
     coeffs_number = wph_op.apply(contamination_batch[0,0], norm=None, pbc=pbc).size(-1)
     ref_type = type(wph_op.apply(contamination_batch[0,0], norm=None, pbc=pbc))
+    print(coeffs_number)
+    print(ref_type)
     # Mode for L1 
     if mode == 'classic_bias':
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
