@@ -221,6 +221,10 @@ def compute_mask(x,std,real_imag=True,cross=False):
     return mask
 
 def compute_loss(mode,x,coeffs_target,std,mask):
+    x = x.to(device)
+    coeffs_target = coeffs_target.to(device)
+    std = std.to(device)
+    mask = mask.to(device)
     # Mode for the first iteration step
     if mode == 'first_iter':
         loss_tot_F1 = torch.zeros(1)
