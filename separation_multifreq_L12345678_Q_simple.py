@@ -47,7 +47,7 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 5
-pbc = True
+pbc = False
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
@@ -233,12 +233,10 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
             # Loss F1
-            print(mask[0,indices])
             loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0][mask[0,indices]] - coeffs_target[0,indices][mask[0,indices]]) / std[0,indices][mask[0,indices]] ) ** 2) / mask[0].sum()
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
-            print(mask[1,indices])
             loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1][mask[1,indices]] - coeffs_target[1,indices][mask[1,indices]]) / std[1,indices][mask[1,indices]] ) ** 2) / mask[1].sum()
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
@@ -430,7 +428,8 @@ if __name__ == "__main__":
                             
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc) - bias
-        
+        print(coeffs_target[0].cpu())
+        print(wph_op.apply(torch.from_numpy(Dust_1).to(device), norm=None, pbc=pbc).cpu())
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
