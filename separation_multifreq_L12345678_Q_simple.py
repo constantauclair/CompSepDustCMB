@@ -47,7 +47,7 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 5
-pbc = False
+pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
@@ -97,7 +97,7 @@ print("SNR F2 =",np.std(Dust_2)/np.std(CMB+Noise_2))
 
 Mixture = np.array([Mixture_1,Mixture_2])
 
-Dust = np.array([Dust_1,Dust_2]) * 10
+Dust = np.array([Dust_1,Dust_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
