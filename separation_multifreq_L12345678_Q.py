@@ -35,11 +35,11 @@ import pywph as pw
 n_freq = 2
 n_maps = n_freq+1
 
-M, N = 256, 256
-J = 6
+M, N = 512,512
+J = 7
 L = 4
 dn = 5
-pbc = False
+pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
@@ -62,8 +62,29 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_Q_217.npy')
-Dust_2 = np.load('data/IQU_Planck_data/Dust_Q_353.npy')
+# Dust_1 = np.load('data/IQU_Planck_data/Dust_Q_217.npy')
+# Dust_2 = np.load('data/IQU_Planck_data/Dust_Q_353.npy')
+    
+# CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
+# CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
+    
+# CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
+# CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
+
+# Noise_1 = np.load('data/IQU_Planck_data/Noise_QU_217.npy')[0,0]
+# Noise_2 = np.load('data/IQU_Planck_data/Noise_QU_353.npy')[0,0]
+    
+# Noise_1_syn = np.load('data/IQU_Planck_data/Noise_QU_217.npy')[0]
+# Noise_2_syn = np.load('data/IQU_Planck_data/Noise_QU_353.npy')[0]
+
+# TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
+
+# TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0]
+
+#####################
+
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] * 10
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] * 10
     
 CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
@@ -71,15 +92,17 @@ CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 
-Noise_1 = np.load('data/IQU_Planck_data/Noise_QU_217.npy')[0,0]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_QU_353.npy')[0,0]
+Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Noise_QU_217.npy')[0]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_QU_353.npy')[0]
+Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
 
 TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
 
 TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0]
+
+#####################
 
 Mixture_1 = Dust_1 + CMB_1 + Noise_1
 Mixture_2 = Dust_2 + CMB_2 + Noise_2
