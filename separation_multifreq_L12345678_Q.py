@@ -84,7 +84,7 @@ n_batch = int(Mn/batch_size)
 #####################
 
 Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] 
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] 
     
 CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
@@ -93,10 +93,10 @@ CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 
 Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
     
 Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
 
 TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
 
