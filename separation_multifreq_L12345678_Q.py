@@ -367,8 +367,8 @@ def objective1(x):
     # Reshape x
     u = x.reshape((n_freq, M, N))
     
-    print("F1 =",u[0].mean(),u[0].std())
-    print("F2 =",u[1].mean(),u[1].std())
+    #print("F1 =",u[0].mean(),u[0].std())
+    #print("F2 =",u[1].mean(),u[1].std())
     
     # Track operations on u
     u = torch.from_numpy(u).to(device).requires_grad_(True)
@@ -726,7 +726,7 @@ if __name__ == "__main__":
         
         print("Era "+str(i+1)+" done !")
         
-    np.save("test_217_353.npy",Dust_tilde0)
+    #np.save("test_217_353.npy",Dust_tilde0)
         
     ## Second minimization
     print("Starting second step of minimization (all coeffs)...")
