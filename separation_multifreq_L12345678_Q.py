@@ -38,8 +38,8 @@ n_maps = n_freq+1
 M, N = 512,512
 J = 7
 L = 4
-dn = 0
-pbc = False
+dn = 5
+pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
