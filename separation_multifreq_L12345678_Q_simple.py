@@ -425,6 +425,7 @@ if __name__ == "__main__":
         
         # Mask coputation
         mask = compute_mask(Dust_tilde0, std).to(device)
+        mask = torch.ones(mask.size(),dtype=torch.bool).to(device) # all coeffs
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
