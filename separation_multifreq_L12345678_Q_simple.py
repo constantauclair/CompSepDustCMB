@@ -70,8 +70,8 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1]
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] * 10
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] * 10
     
 CMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
     
@@ -97,7 +97,7 @@ print("SNR F2 =",np.std(Dust_2)/np.std(CMB+Noise_2))
 
 Mixture = np.array([Mixture_1,Mixture_2])
 
-Dust = np.array([Dust_1,Dust_2]) * 10
+Dust = np.array([Dust_1,Dust_2])
 
 Noise = np.array([Noise_1,Noise_2])
 
