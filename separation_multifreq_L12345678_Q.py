@@ -367,6 +367,9 @@ def objective1(x):
     # Reshape x
     u = x.reshape((n_freq, M, N))
     
+    print("F1 =",u[0].mean(),u[0].std())
+    print("F2 =",u[1].mean(),u[1].std())
+    
     # Track operations on u
     u = torch.from_numpy(u).to(device).requires_grad_(True)
     
@@ -710,15 +713,9 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std_L1(Dust_tilde0)
-        print("Bias F1 =",bias[0].cpu())
-        print("Bias F2 =",bias[1].cpu())
-        print("Std F1 =",std[0].cpu())
-        print("Std F2 =",std[1].cpu())
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
-        print("Coeffs target F1 =",coeffs_target[0])
-        print("Coeffs target F2 =",coeffs_target[1])
         
         # Minimization
         result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
