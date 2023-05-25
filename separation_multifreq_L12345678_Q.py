@@ -39,7 +39,7 @@ M, N = 512,512
 J = 7
 L = 4
 dn = 5
-pbc = False
+pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
 
@@ -83,8 +83,8 @@ n_batch = int(Mn/batch_size)
 
 #####################
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] * 10
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] * 10
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1]
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1]
     
 CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
