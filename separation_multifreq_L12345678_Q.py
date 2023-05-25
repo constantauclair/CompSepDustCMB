@@ -372,28 +372,15 @@ def objective1(x):
     loss_tot_F2 = torch.zeros(1)
     u, nb_chunks = wph_op.preconfigure(u, requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
-        if pbc==True:
-            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
-            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
-            loss_F1 = loss_F1 / len(coeffs_target[0])
-            loss_F2 = loss_F2 / len(coeffs_target[1])
-            loss_F1.backward(retain_graph=True)
-            loss_F2.backward(retain_graph=True)
-            loss_tot_F1 += loss_F1.detach().cpu()
-            loss_tot_F2 += loss_F2.detach().cpu()
-        if pbc==False:
-            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-            kept_coeffs_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1[indices] / std[0,indices],nan=0)
-            kept_coeffs_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2[indices] / std[1,indices],nan=0)
-            loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) * kept_coeffs_F1 ) ** 2)
-            loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) * kept_coeffs_F2 ) ** 2)
-            loss_F1 = loss_F1 / coeffs_number_step1_L1_F1
-            loss_F2 = loss_F2 / coeffs_number_step1_L1_F2
-            loss_F1.backward(retain_graph=True)
-            loss_F2.backward(retain_graph=True)
-            loss_tot_F1 += loss_F1.detach().cpu()
-            loss_tot_F2 += loss_F2.detach().cpu()
+        coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
+        loss_F1 = torch.sum(torch.abs( (coeffs_chunk[0] - coeffs_target[0,indices]) / std[0,indices] ) ** 2)
+        loss_F2 = torch.sum(torch.abs( (coeffs_chunk[1] - coeffs_target[1,indices]) / std[1,indices] ) ** 2)
+        loss_F1 = loss_F1 / len(coeffs_target[0])
+        loss_F2 = loss_F2 / len(coeffs_target[1])
+        loss_F1.backward(retain_graph=True)
+        loss_F2.backward(retain_graph=True)
+        loss_tot_F1 += loss_F1.detach().cpu()
+        loss_tot_F2 += loss_F2.detach().cpu()
         del coeffs_chunk, indices, loss_F1, loss_F2
     
     # Reshape the gradient
