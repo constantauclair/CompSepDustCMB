@@ -38,7 +38,7 @@ n_maps = n_freq+1
 M, N = 512,512
 J = 7
 L = 4
-dn = 5
+dn = 0
 pbc = True
 
 file_name="separation_multifreq_L12345678_Q.npy"
@@ -697,26 +697,6 @@ if __name__ == "__main__":
     
     Dust_tilde0 = np.array([Mixture_1,Mixture_2])
     
-    if pbc==False:
-        # Identification of the irrelevant imaginary parts of the coeffs
-        # F1
-        coeffs_step1_L1_F1 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[0]).to(device),norm=None,pbc=pbc))
-        relevant_coeffs_step1_L1_F1 = torch.where(coeffs_step1_L1_F1 > 1e-6,1,0)
-        # F2
-        coeffs_step1_L1_F2 = torch.abs(wph_op.apply(torch.from_numpy(Dust_tilde0[1]).to(device),norm=None,pbc=pbc))
-        relevant_coeffs_step1_L1_F2 = torch.where(coeffs_step1_L1_F2 > 1e-6,1,0)
-        
-        # Computation of the coeffs and std
-        bias, std = compute_bias_std_L1(torch.from_numpy(Dust_tilde0).to(device))
-        
-        # Compute the number of coeffs
-        # F1
-        kept_coeffs_step1_L1_F1 = torch.nan_to_num(relevant_coeffs_step1_L1_F1 / std[0],nan=0)
-        coeffs_number_step1_L1_F1 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F1>0,1,0))).item()
-        # F2
-        kept_coeffs_step1_L1_F2 = torch.nan_to_num(relevant_coeffs_step1_L1_F2 / std[1],nan=0)
-        coeffs_number_step1_L1_F2 = torch.where(torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))==0,1,torch.sum(torch.where(kept_coeffs_step1_L1_F2>0,1,0))).item()
-        
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step1):
         
@@ -727,6 +707,10 @@ if __name__ == "__main__":
         
         # Bias computation
         bias, std = compute_bias_std_L1(Dust_tilde0)
+        print("Bias F1 =",bias[0].cpu())
+        print("Bias F2 =",bias[1].cpu())
+        print("Std F1 =",std[0].cpu())
+        print("Std F2 =",std[1].cpu())
         
         # Coeffs target computation
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
