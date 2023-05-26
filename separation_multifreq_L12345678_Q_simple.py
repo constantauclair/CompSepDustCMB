@@ -9,8 +9,8 @@ import scipy.optimize as opt
 import pywph as pw
 
 '''
-This component separation algorithm aims to separate the Stokes Q of the polarized dust emission from the CMB and noise 
-contamination on Planck-like mock data. This is done at 217 and 353 GHz. 
+This component separation algorithm aims to separate the Stokes Q parameter of the polarized dust emission from the CMB 
+and noise contamination on Planck-like mock data. This is done at 217 and 353 GHz. 
 It makes use of the WPH statistics (see Régaldo-Saint Blancard et al. 2022). 
 For any question: constant.auclair@phys.ens.fr
 Another project has been led on the dust/CIB/noise separation on Herschel data (see Auclair et al. 2023).

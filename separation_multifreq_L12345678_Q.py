@@ -83,8 +83,8 @@ n_batch = int(Mn/batch_size)
 
 #####################
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] 
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1]
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] 
     
 CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
@@ -92,11 +92,11 @@ CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
 CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
 
-Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
+Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
+Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
 
 TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
 
@@ -726,7 +726,7 @@ if __name__ == "__main__":
         
         print("Era "+str(i+1)+" done !")
         
-    #np.save("test_217_353.npy",Dust_tilde0)
+    np.save("test_353_217.npy",Dust_tilde0)
         
     ## Second minimization
     print("Starting second step of minimization (all coeffs)...")
