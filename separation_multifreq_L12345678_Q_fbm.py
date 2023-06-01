@@ -36,8 +36,8 @@ import scipy.stats as stats
 n_freq = 2
 n_maps = n_freq+1
 
-M, N = 512,512
-J = 7
+M, N = 256,256 #512,512
+J = 6 #7
 L = 4
 dn = 5
 pbc = True
