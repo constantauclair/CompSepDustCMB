@@ -126,7 +126,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
     # Mode for L1 
     if mode == 'classic_bias':
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
-        coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
+        coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc).type(dtype=ref_type)
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
@@ -148,7 +148,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure(contamination_batch[i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[:,indices] = coeffs_chunk
+                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
@@ -163,7 +163,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure(contamination_batch[:,i], pbc=pbc)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc)
-                batch_COEFFS[:,:,indices] = coeffs_chunk
+                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
@@ -178,7 +178,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,indices] = coeffs_chunk - wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True)[indices].type(dtype=ref_type)
+                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True)[indices].type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
@@ -193,7 +193,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure([contamination_batch[:,i],cross_contamination_batch[:,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,:,indices] = coeffs_chunk
+                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
