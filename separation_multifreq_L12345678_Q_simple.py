@@ -48,8 +48,8 @@ method = 'L-BFGS-B'
 
 file_name="separation_multifreq_L12345678_Q_simple.npy"
 
-n_step1 = 5
-iter_per_step1 = 50
+n_step1 = 3 #5
+iter_per_step1 = 100 #50
     
 n_step2 = 5#10
 iter_per_step2 = 50#100
