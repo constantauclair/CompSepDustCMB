@@ -39,14 +39,14 @@ L8 : u_CMB * T_CMB = CMB * T_CMB
 n_freq = 2
 n_maps = n_freq+1
 
-M, N = 256,256 #512, 512
-J = 6 #7
+M, N = 512, 512
+J = 7
 L = 4
 dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_multifreq_L12345678_Q_simple_pbc=False.npy"
+file_name="separation_multifreq_L12345678_Q_simple_trueSNR.npy"
 
 n_step1 = 3 #5
 iter_per_step1 = 100 #50
@@ -67,8 +67,8 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2] * 10
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1][::2,::2] * 10
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2]
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1][::2,::2]
     
 CMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0][::2,::2]
     
