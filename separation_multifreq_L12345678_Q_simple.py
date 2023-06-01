@@ -43,10 +43,10 @@ M, N = 256,256 #512, 512
 J = 6 #7
 L = 4
 dn = 5
-pbc = True
+pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_multifreq_L12345678_Q_simple.npy"
+file_name="separation_multifreq_L12345678_Q_simple_pbc=False.npy"
 
 n_step1 = 3 #5
 iter_per_step1 = 100 #50
