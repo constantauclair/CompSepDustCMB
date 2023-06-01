@@ -47,8 +47,8 @@ file_name="separation_multifreq_L12345678_Q_fbm.npy"
 n_step1 = 5
 iter_per_step1 = 50
     
-n_step2 = 10
-iter_per_step2 = 100
+n_step2 = 5#10
+iter_per_step2 = 50#100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -65,24 +65,24 @@ slope = -4
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] 
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2] * 10
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1][::2,::2] * 10
     
-CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
-CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
+CMB_1 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0][::2,::2]
+CMB_2 = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0][::2,::2]
     
-CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
-CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
+CMB_1_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1][:,::2,::2]
+CMB_2_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1][:,::2,::2]
 
-Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
+Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0][::2,::2]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0][::2,::2]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
+Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1][:,::2,::2]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1][:,::2,::2]
 
-TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
+TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0][::2,::2]
 
-TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0]
+TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0][:,::2,::2]
 
 Mixture_1 = Dust_1 + CMB_1 + Noise_1
 Mixture_2 = Dust_2 + CMB_2 + Noise_2
