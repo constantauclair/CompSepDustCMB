@@ -234,7 +234,7 @@ def compute_loss(mode,x,coeffs_target,std,mask):
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
-            loss_F2 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) ) / ( mask[0,1].sum() + mask[1,1].sum() )
+            loss_F2 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[1])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[1])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) ) / ( mask[0,1].sum() + mask[1,1].sum() )
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
             #
