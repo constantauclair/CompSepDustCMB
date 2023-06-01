@@ -264,7 +264,6 @@ def compute_mask(x,std,real_imag=True,cross=False):
     return mask.to(device)
 
 def compute_loss(mode,x,coeffs_target,std,mask):
-    x = x.to(device)
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
     mask = mask.to(device)
