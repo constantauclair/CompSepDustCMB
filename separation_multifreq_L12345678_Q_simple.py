@@ -139,6 +139,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=1)
+            std = torch.std(COEFFS,axis=1)
     # Mode for L2
     if mode == 'mean_monofreq':
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
@@ -154,6 +160,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=0)
+            std = torch.std(COEFFS,axis=0)
     # Mode for L3
     if mode == 'mean':
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
@@ -169,6 +181,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=1)
+            std = torch.std(COEFFS,axis=1)
     # Mode for L4
     if mode == 'cross_freq_bias':
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
@@ -185,6 +203,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=0)
+            std = torch.std(COEFFS,axis=0)
     # Mode for L5, L6, L7 and L8
     if mode == 'cross_mean':
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
@@ -200,12 +224,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
-    if real_imag:
-        bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
-        std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
-    else:
-        bias = torch.mean(COEFFS,axis=1)
-        std = torch.std(COEFFS,axis=1)
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=1),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=1),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=1),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=1)
+            std = torch.std(COEFFS,axis=1)
     return bias.to(device), std.to(device)
 
 def compute_mask(x,std,real_imag=True,cross=False):
