@@ -43,7 +43,7 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 5
-pbc = False
+pbc = True
 method = 'L-BFGS-B'
 
 file_name="separation_multifreq_L12345678_Q_simple_trueSNR.npy"
