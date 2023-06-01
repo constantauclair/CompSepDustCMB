@@ -42,7 +42,8 @@ L = 4
 dn = 5
 pbc = True
 
-file_name="separation_multifreq_L12345678_Q_fbm.npy"
+method = 'CG' # 'L-BFGS-B'
+file_name="separation_multifreq_L12345678_Q_fbm_CG.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -737,7 +738,7 @@ if __name__ == "__main__":
         coeffs_target = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc) - bias # estimation of the unbiased coefficients
         
         # Minimization
-        result = opt.minimize(objective1, torch.from_numpy(Initial_condition).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective1, torch.from_numpy(Initial_condition).ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
@@ -844,7 +845,7 @@ if __name__ == "__main__":
         coeffs_target_L6, std_L6 = compute_complex_mean_std_L6(Current_maps[:n_freq])
         
         # Minimization
-        result = opt.minimize(objective2, torch.from_numpy(np.array([Initial_condition[0],Initial_condition[1],Current_maps0[2]])).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Initial_condition[0],Initial_condition[1],Current_maps0[2]])).ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping

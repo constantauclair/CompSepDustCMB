@@ -14,32 +14,28 @@ and noise contamination on Planck-like mock data. This is done at 217 and 353 GH
 It makes use of the WPH statistics (see Régaldo-Saint Blancard et al. 2022). 
 For any question: constant.auclair@phys.ens.fr
 Another project has been led on the dust/CIB/noise separation on Herschel data (see Auclair et al. 2023).
-'''
 
+Loss terms:
+# Auto statistics
+L1 : u_dust + CMB + n = d
+L2 : u_CMB = CMB
+L3 : d - u_dust - u_CMB = n
+
+# Cross-frequency statistics
+L4 : (u_dust_1 + CMB + n_1)*(u_dust_2 + CMB + n_2) = d_1 * d_2
+
+# Cross-component statistics
+L5 : u_dust * u_CMB = 0
+L6 : u_dust * n = 0
+L7 : u_CMB * n = 0
+
+# Correlation with T
+L8 : u_CMB * T_CMB = CMB * T_CMB
+'''
 #######
 # INPUT PARAMETERS
 #######
 
-### Loss terms
-
-# Auto statistics
-# L1 : u_dust + CMB + n = d
-# L2 : u_CMB = CMB
-# L3 : d - u_dust - u_CMB = n
-
-# Cross-frequency statistics
-# L4 : (u_dust_1 + CMB + n_1)*(u_dust_2 + CMB + n_2) = d_1 * d_2
-
-# Cross-component statistics
-# L5 : u_dust * u_CMB = 0
-# L6 : u_dust * n = 0
-# L7 : u_CMB * n = 0
-
-# Correlation with T
-# L8 : u_CMB * T_CMB = CMB * T_CMB
-###
-
-###
 n_freq = 2
 n_maps = n_freq+1
 
