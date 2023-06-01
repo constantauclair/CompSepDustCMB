@@ -39,19 +39,20 @@ L8 : u_CMB * T_CMB = CMB * T_CMB
 n_freq = 2
 n_maps = n_freq+1
 
-M, N = 512, 512
-J = 7
+M, N = 256,256 #512, 512
+J = 6 #7
 L = 4
 dn = 5
 pbc = True
+method = 'L-BFGS-B'
 
-file_name="separation_multifreq_L12345678_Q.npy"
+file_name="separation_multifreq_L12345678_Q_simple.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
     
-n_step2 = 10
-iter_per_step2 = 100
+n_step2 = 5#10
+iter_per_step2 = 50#100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
@@ -66,22 +67,22 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1] * 10
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1] * 10
+Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2] * 10
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1][::2,::2] * 10
     
-CMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0]
+CMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0][::2,::2]
     
-CMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1]
+CMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1][:,::2,::2]
 
-Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0]
+Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0][::2,::2]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0][::2,::2]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1]
+Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1][:,::2,::2]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1][:,::2,::2]
 
-TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0]
+TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0][::2,::2]
 
-TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0]
+TCMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0][:,::2,::2]
 
 Mixture_1 = Dust_1 + CMB + Noise_1
 Mixture_2 = Dust_2 + CMB + Noise_2
@@ -229,11 +230,11 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
             # Loss F1
-            loss_F1 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) / mask[0,0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) / mask[1,0].sum() )
+            loss_F1 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) ) / ( mask[0,0].sum() + mask[1,0].sum() )
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
-            loss_F2 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) / mask[0,1].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) / mask[1,1].sum() )
+            loss_F2 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) ) / ( mask[0,1].sum() + mask[1,1].sum() )
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
             #
@@ -247,11 +248,11 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
             # Loss F1
-            loss_F1 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) / mask[0,0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) / mask[1,0].sum() )
+            loss_F1 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) ) / ( mask[0,0].sum() + mask[1,0].sum() )
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
-            loss_F2 = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) / mask[0,1].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) / mask[1,1].sum() )
+            loss_F2 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) ) / ( mask[0,1].sum() + mask[1,1].sum() )
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
             #
@@ -263,7 +264,7 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-            loss = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) / mask[0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) / mask[1].sum() )
+            loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
             del coeffs_chunk, indices, loss
@@ -274,7 +275,7 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=True)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
-            loss = 0.5*( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) / mask[0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) / mask[1].sum() )
+            loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
             del coeffs_chunk, indices, loss
@@ -287,11 +288,11 @@ def compute_loss(mode,x,coeffs_target,std,mask):
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, cross=True, pbc=pbc)
             # Loss F1
-            loss_F1 = torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) / mask[0,0].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) / mask[1,0].sum()
+            loss_F1 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) ) / ( mask[0,0].sum() + mask[1,0].sum() )
             loss_F1.backward(retain_graph=True)
             loss_tot_F1 += loss_F1.detach().cpu()
             # Loss F2
-            loss_F2 = torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) / mask[0,1].sum() + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) / mask[1,1].sum()
+            loss_F2 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,1,indices]] - coeffs_target[0,1][indices][mask[0,1,indices]]) / std[0,1][indices][mask[0,1,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,1,indices]] - coeffs_target[1,1][indices][mask[1,1,indices]]) / std[1,1][indices][mask[1,1,indices]] ) ** 2) ) / ( mask[0,1].sum() + mask[1,1].sum() )
             loss_F2.backward(retain_graph=True)
             loss_tot_F2 += loss_F2.detach().cpu()
             #
@@ -346,19 +347,20 @@ def objective2(x):
     
     # Compute the losses
     L1_F1, L1_F2 = compute_loss('L1',u_dust,coeffs_target_L1,std_L1,mask_L1)
-    L2 = compute_loss('L2',u_CMB,coeffs_target_L2,std_L2,mask_L2)
-    L3_F1, L3_F2 = compute_loss('L3',torch.from_numpy(Mixture).to(device) - u_dust - u_CMB,coeffs_target_L3,std_L3,mask_L3)
+    #L2 = compute_loss('L2',u_CMB,coeffs_target_L2,std_L2,mask_L2)
+    #L3_F1, L3_F2 = compute_loss('L3',torch.from_numpy(Mixture).to(device) - u_dust - u_CMB,coeffs_target_L3,std_L3,mask_L3)
     L4 = compute_loss('L4',[u_dust[0],u_dust[1]],coeffs_target_L4,std_L4,mask_L4)
-    L5_F1, L5_F2 = compute_loss('L5',[u_dust,u_CMB.expand((n_freq,M,N))],coeffs_target_L5,std_L5,mask_L5)
-    L6_F1, L6_F2 = compute_loss('L6',[u_dust,torch.from_numpy(Mixture).to(device) - u_dust - u_CMB],coeffs_target_L6,std_L6,mask_L6)
-    L7_F1, L7_F2 = compute_loss('L7',[u_CMB.expand((n_freq,M,N)),torch.from_numpy(Mixture).to(device) - u_dust - u_CMB],coeffs_target_L7,std_L7,mask_L7)
-    L8 = compute_loss('L8',[u_CMB,torch.from_numpy(TCMB).to(device)],coeffs_target_L8,std_L8,mask_L8)
+    #L5_F1, L5_F2 = compute_loss('L5',[u_dust,u_CMB.expand((n_freq,M,N))],coeffs_target_L5,std_L5,mask_L5)
+    #L6_F1, L6_F2 = compute_loss('L6',[u_dust,torch.from_numpy(Mixture).to(device) - u_dust - u_CMB],coeffs_target_L6,std_L6,mask_L6)
+    #L7_F1, L7_F2 = compute_loss('L7',[u_CMB.expand((n_freq,M,N)),torch.from_numpy(Mixture).to(device) - u_dust - u_CMB],coeffs_target_L7,std_L7,mask_L7)
+    #L8 = compute_loss('L8',[u_CMB,torch.from_numpy(TCMB).to(device)],coeffs_target_L8,std_L8,mask_L8)
         
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
     
     # Compute total loss
-    L = L1_F1 + L1_F2 + L2 + L3_F1 + L3_F2 + L4 + L5_F1 + L5_F2 + L6_F1 + L6_F2 + L7_F1 + L7_F2 + L8
+    #L = L1_F1 + L1_F2 + L2 + L3_F1 + L3_F2 + L4 + L5_F1 + L5_F2 + L6_F1 + L6_F2 + L7_F1 + L7_F2 + L8
+    L = L1_F1 + L1_F2 + L4
     
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -366,23 +368,23 @@ def objective2(x):
     print("L1 F1 = "+str(round(L1_F1.item(),3)))
     print("L1 F2 = "+str(round(L1_F2.item(),3)))
     # L2
-    print("L2 = "+str(round(L2.item(),3)))
+    #print("L2 = "+str(round(L2.item(),3)))
     # L3
-    print("L3 F1 = "+str(round(L3_F1.item(),3)))
-    print("L3 F2 = "+str(round(L3_F2.item(),3)))
+    #print("L3 F1 = "+str(round(L3_F1.item(),3)))
+    #print("L3 F2 = "+str(round(L3_F2.item(),3)))
     # L4
     print("L4 = "+str(round(L4.item(),3)))
     # L5
-    print("L5 F1 = "+str(round(L5_F1.item(),3)))
-    print("L5 F2 = "+str(round(L5_F2.item(),3)))
+    # print("L5 F1 = "+str(round(L5_F1.item(),3)))
+    # print("L5 F2 = "+str(round(L5_F2.item(),3)))
     # L6
-    print("L6 F1 = "+str(round(L6_F1.item(),3)))
-    print("L6 F2 = "+str(round(L6_F2.item(),3)))
+    # print("L6 F1 = "+str(round(L6_F1.item(),3)))
+    # print("L6 F2 = "+str(round(L6_F2.item(),3)))
     # L7
-    print("L7 F1 = "+str(round(L7_F1.item(),3)))
-    print("L7 F2 = "+str(round(L7_F2.item(),3)))
+    # print("L7 F1 = "+str(round(L7_F1.item(),3)))
+    # print("L7 F2 = "+str(round(L7_F2.item(),3)))
     # L8
-    print("L8 = "+str(round(L8.item(),3)))
+    # print("L8 = "+str(round(L8.item(),3)))
     print("")
 
     eval_cnt += 1
@@ -421,14 +423,14 @@ if __name__ == "__main__":
         
         # Mask coputation
         mask = compute_mask(Dust_tilde0, std).to(device)
-        mask = torch.ones(mask.size(),dtype=torch.bool).to(device) # all coeffs
+        #mask = torch.ones(mask.size(),dtype=torch.bool).to(device) # all coeffs
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
         coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias[1],dim=0)))
         
         # Minimization
-        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective1, torch.from_numpy(Mixture).ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
@@ -449,16 +451,16 @@ if __name__ == "__main__":
     Current_maps0 = np.array([Dust_tilde0[0],Dust_tilde0[1],np.random.normal(np.mean(CMB),np.std(CMB),size=(M,N))])
     
     # Computation of the coeffs and std
-    coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', CMB_batch)
-    coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
-    coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand(Noise_batch.size()), cross_contamination_batch=Noise_batch)
-    coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch, cross_contamination_batch=TCMB_batch)
+    #coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', CMB_batch)
+    #coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
+    #coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand(Noise_batch.size()), cross_contamination_batch=Noise_batch)
+    #coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch, cross_contamination_batch=TCMB_batch)
     
     # Mask computation
-    mask_L2 = compute_mask(torch.from_numpy(CMB).to(device),std_L2)
-    mask_L3 = compute_mask(torch.from_numpy(Noise).to(device),std_L3)
-    mask_L7 = compute_mask([torch.from_numpy(CMB).to(device).expand((n_freq,M,N)),torch.from_numpy(Noise).to(device)],std_L7,cross=True)
-    mask_L8 = compute_mask([torch.from_numpy(CMB).to(device),torch.from_numpy(TCMB).to(device)],std_L8,cross=True)
+    #mask_L2 = compute_mask(torch.from_numpy(CMB).to(device),std_L2)
+    #mask_L3 = compute_mask(torch.from_numpy(Noise).to(device),std_L3)
+    #mask_L7 = compute_mask([torch.from_numpy(CMB).to(device).expand((n_freq,M,N)),torch.from_numpy(Noise).to(device)],std_L7,cross=True)
+    #mask_L8 = compute_mask([torch.from_numpy(CMB).to(device),torch.from_numpy(TCMB).to(device)],std_L8,cross=True)
     
     Current_maps = Current_maps0
     
@@ -473,8 +475,8 @@ if __name__ == "__main__":
         # Bias computation
         bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', Noise_batch+CMB_batch.expand(Noise_batch.size()), x=Current_maps[:n_freq])
         bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
-        coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.expand((n_freq,n_batch,batch_size,M,N)))
-        coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
+        #coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.expand((n_freq,n_batch,batch_size,M,N)))
+        #coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
         
         # Coeffs target computation
         coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
@@ -485,11 +487,11 @@ if __name__ == "__main__":
         # Mask computation
         mask_L1 = compute_mask(Current_maps[:n_freq],std_L1)
         mask_L4 = compute_mask([Current_maps[0],Current_maps[1]],std_L4,cross=True)
-        mask_L5 = compute_mask([Current_maps[:n_freq],Current_maps[2].expand((2,M,N))],std_L5,cross=True)
-        mask_L6 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L6,cross=True)
+        #mask_L5 = compute_mask([Current_maps[:n_freq],Current_maps[2].expand((2,M,N))],std_L5,cross=True)
+        #mask_L6 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L6,cross=True)
         
         # Minimization
-        result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
