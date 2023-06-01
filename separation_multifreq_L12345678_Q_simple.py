@@ -68,17 +68,17 @@ n_batch = int(Mn/batch_size)
 #######
 
 Dust_1 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2] * 10
-Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_353.npy')[1][::2,::2] * 10
+Dust_2 = np.load('data/IQU_Planck_data/Dust_IQU_217.npy')[1][::2,::2] * 10
     
 CMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1,0][::2,::2]
     
 CMB_syn = np.load('data/IQU_Planck_data/CMB_IQU.npy')[1][:,::2,::2]
 
 Noise_1 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0][::2,::2]
-Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1,0][::2,::2]
+Noise_2 = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1,0][::2,::2]
     
 Noise_1_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1][:,::2,::2]
-Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_353.npy')[1][:,::2,::2]
+Noise_2_syn = np.load('data/IQU_Planck_data/Noise_IQU_217.npy')[1][:,::2,::2]
 
 TCMB = np.load('data/IQU_Planck_data/CMB_IQU.npy')[0,0][::2,::2]
 
@@ -178,7 +178,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             u_noisy, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,indices] = coeffs_chunk - wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True)[indices]
+                batch_COEFFS[:,indices] = coeffs_chunk - wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True)[indices].type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
