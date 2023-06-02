@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 # Center of the sky region
-longitude = 25
-latitude = 65
+longitude = 300.26
+latitude = -16.77
 # Resolution (in arcmin)
-reso = 4
+reso = 2.35
 # Map size (in pixel)
 N = 512
 
@@ -27,4 +27,4 @@ for i in range(n_noise_maps):
     plt.close()
     print(i)
 
-np.save("data/IQU_Planck_data/Noise_IQU_"+str(freq)+".npy",IQU_Noise_maps)
+np.save("data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_"+str(freq)+".npy",IQU_Noise_maps)
