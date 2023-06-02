@@ -51,7 +51,7 @@ slope = -6
 
 file_name="separation_multifreq_L12345678_Q_simple_trueSNR_fbm-6.npy"
 
-n_step1 = 3 #5
+n_step1 = 10 #5
 iter_per_step1 = 100 #50
     
 n_step2 = 5#10
