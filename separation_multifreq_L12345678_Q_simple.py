@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import scipy.optimize as opt
 import pywph as pw
+import scipy.stats as stats
 
 '''
 This component separation algorithm aims to separate the Stokes Q parameter of the polarized dust emission from the CMB 
@@ -46,7 +47,9 @@ dn = 5
 pbc = True
 method = 'L-BFGS-B'
 
-file_name="separation_multifreq_L12345678_Q_simple_trueSNR.npy"
+slope = -6
+
+file_name="separation_multifreq_L12345678_Q_simple_trueSNR_fbm-6.npy"
 
 n_step1 = 3 #5
 iter_per_step1 = 100 #50
@@ -104,6 +107,43 @@ Noise_syn = np.array([Noise_1_syn,Noise_2_syn])
 # USEFUL FUNCTIONS
 #######
 
+def power_spectrum(image):
+    assert image.shape[0] == image.shape[1]    
+    n = image.shape[0]
+    fourier = np.fft.fftn(image)
+    amplitude = (np.abs(fourier) ** 2).flatten()
+    kfreq = np.fft.fftfreq(n) * n
+    kfreq2D = np.meshgrid(kfreq, kfreq)
+    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2).flatten() ** (1 / 2)
+    kbins = np.arange(1 / 2, n // 2 + 1, 1)
+    kvals = (kbins[1:] + kbins[:-1]) / 2
+    bins, _, _ = stats.binned_statistic(knrm, amplitude, statistic = "mean", bins = kbins)
+    return kvals, bins
+
+def generate_partial_fbm(noisy_data,noise,slope,lim=3):
+    noise_k, noise_bins = power_spectrum(noise)
+    noisy_data_k, noisy_data_bins = power_spectrum(noisy_data)
+    clean_mask = noise_bins < noisy_data_bins/lim
+    k_clean = noisy_data_k[clean_mask]
+    bins_clean = noisy_data_bins[clean_mask]
+    n = np.shape(noisy_data)[0]
+    kfreq = np.fft.fftfreq(n) * n
+    kfreq2D = np.meshgrid(kfreq, kfreq)
+    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2) ** (1 / 2)
+    filtered_k_mask = knrm > k_clean[-1]
+    noisy_data_FT = np.fft.fft2(noisy_data)
+    random_phases = np.exp(1j*np.angle(np.fft.fft2(np.random.random(size=np.shape(noisy_data)))))
+    if type(slope) == list:
+        several_new_data = np.zeros((len(slope),n,n))
+        for i in range(len(slope)):
+            new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope[i]/2),noisy_data_FT)
+            several_new_data[i] = np.real(np.fft.ifft2(new_data_FT))
+        return several_new_data
+    else:
+        new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope/2),noisy_data_FT)
+        new_data = np.real(np.fft.ifft2(new_data_FT))
+        return new_data
+    
 def create_batch(n_freq, n, device):
     batch = torch.zeros([n_freq,n_batch,batch_size,M,N])
     for i in range(n_batch):
@@ -453,7 +493,9 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
-    Dust_tilde0 = np.array([Mixture_1,Mixture_2])
+    Initial_condition = np.array([generate_partial_fbm(Mixture_1,Noise_1+CMB,slope),generate_partial_fbm(Mixture_2,Noise_2+CMB,slope)])
+    
+    Dust_tilde0 = Initial_condition
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
     for i in range(n_step1):
@@ -468,10 +510,9 @@ if __name__ == "__main__":
         
         # Mask coputation
         mask = compute_mask(Dust_tilde0, std).to(device)
-        #mask = torch.ones(mask.size(),dtype=torch.bool).to(device) # all coeffs
         
         # Coeffs target computation
-        coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
+        coeffs_d = wph_op.apply(torch.from_numpy(Initial_condition), norm=None, pbc=pbc)
         coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias[1],dim=0)))
         
         # Minimization
@@ -536,7 +577,7 @@ if __name__ == "__main__":
         #mask_L6 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L6,cross=True)
         
         # Minimization
-        result = opt.minimize(objective2, torch.from_numpy(Current_maps0).ravel(), method=method, jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, torch.from_numpy(np.array([Initial_condition[0],Initial_condition[1],Current_maps0[2]])).ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
@@ -549,4 +590,4 @@ if __name__ == "__main__":
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     
     if file_name is not None:
-        np.save(file_name, [Mixture,Dust,np.array([CMB,CMB]),np.array([TCMB,TCMB]),Noise,Current_maps[:n_freq],np.array([Current_maps[n_freq],Current_maps[n_freq]]),Mixture-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]),Current_maps0[:n_freq]])        
+        np.save(file_name, [Mixture,Dust,np.array([CMB,CMB]),np.array([TCMB,TCMB]),Noise,Current_maps[:n_freq],np.array([Current_maps[n_freq],Current_maps[n_freq]]),Mixture-Current_maps[:n_freq]-np.array([Current_maps[n_freq],Current_maps[n_freq]]),Current_maps0[:n_freq],Initial_condition])        
