@@ -50,10 +50,10 @@ losses = ['L1','L4']
 
 slope = -6
 
-file_name="separation_multifreq_L14_Q_fbm-6.npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_fbm-6.npy"
 
-n_step1 = 10 #5
-iter_per_step1 = 100 #50
+n_step1 = 5
+iter_per_step1 = 50
     
 n_step2 = 5#10
 iter_per_step2 = 50#100
