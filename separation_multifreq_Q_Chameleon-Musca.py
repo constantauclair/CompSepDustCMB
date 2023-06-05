@@ -48,9 +48,9 @@ pbc = True
 method = 'L-BFGS-B'
 losses = ['L1','L4']
 
-slope = -6
+slope = -4
 
-file_name="separation_multifreq_Q_Chameleon-Musca_fbm-6.npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L14_fbm-4.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
