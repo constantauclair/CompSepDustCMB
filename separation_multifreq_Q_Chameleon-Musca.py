@@ -8,6 +8,7 @@ import torch
 import scipy.optimize as opt
 import pywph as pw
 import scipy.stats as stats
+import argparse
 
 '''
 This component separation algorithm aims to separate the Stokes Q parameter of the polarized dust emission from the CMB 
@@ -48,9 +49,12 @@ pbc = True
 method = 'L-BFGS-B'
 losses = ['L1','L4']
 
-slope = -4
+parser = argparse.ArgumentParser()
+parser.add_argument('fbm_slope', type=int)
+args = parser.parse_args()
+slope = args.fbm_slope
 
-file_name="separation_multifreq_Q_Chameleon-Musca_L14_fbm-4.npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L14_fbm"+str(slope)+".npy"
 
 n_step1 = 5
 iter_per_step1 = 50
