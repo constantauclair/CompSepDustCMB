@@ -47,14 +47,14 @@ L = 4
 dn = 5
 pbc = True
 method = 'L-BFGS-B'
-losses = ['L1','L4']
+losses = ['L1']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('fbm_slope', type=int)
 args = parser.parse_args()
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Q_Chameleon-Musca_L14_fbm"+str(slope)+".npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L1_fbm"+str(slope)+".npy"
 
 n_step1 = 5
 iter_per_step1 = 50
