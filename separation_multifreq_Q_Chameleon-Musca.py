@@ -126,7 +126,7 @@ def power_spectrum(image):
     bins, _, _ = stats.binned_statistic(knrm, amplitude, statistic = "mean", bins = kbins)
     return kvals, bins
 
-def generate_partial_fbm(noisy_data,noise,slope,lim=3):
+def generate_partial_fbm(noisy_data,noise,slope,lim=1.5):
     noise_k, noise_bins = power_spectrum(noise)
     noisy_data_k, noisy_data_bins = power_spectrum(noisy_data)
     clean_mask = noise_bins < noisy_data_bins/lim
