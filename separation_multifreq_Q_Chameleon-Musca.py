@@ -55,7 +55,7 @@ args = parser.parse_args()
 losses = args.loss_list
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+".npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+"_fbmlim=1,5.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
