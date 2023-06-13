@@ -56,7 +56,7 @@ args = parser.parse_args()
 losses = args.loss_list
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+"_353.npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+"_217_newfbm.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -77,18 +77,18 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[1]
+Dust_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_217.npy')[1]
+Dust_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_217.npy')[1]
     
 CMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[1,0]
     
 CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[1]
 
-Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1,0]
+Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1,0]
+Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1,0]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1]
+Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1]
+Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1]
 
 TCMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[0,0]
 
@@ -127,29 +127,60 @@ def power_spectrum(image):
     bins, _, _ = stats.binned_statistic(knrm, amplitude, statistic = "mean", bins = kbins)
     return kvals, bins
 
-def generate_partial_fbm(noisy_data,noise,slope,lim=1.5):
-    noise_k, noise_bins = power_spectrum(noise)
-    noisy_data_k, noisy_data_bins = power_spectrum(noisy_data)
-    clean_mask = noise_bins < noisy_data_bins/lim
-    k_clean = noisy_data_k[clean_mask]
-    bins_clean = noisy_data_bins[clean_mask]
-    n = np.shape(noisy_data)[0]
-    kfreq = np.fft.fftfreq(n) * n
+# def generate_partial_fbm(noisy_data,noise,slope,lim=1.5):
+#     noise_k, noise_bins = power_spectrum(noise)
+#     noisy_data_k, noisy_data_bins = power_spectrum(noisy_data)
+#     clean_mask = noise_bins < noisy_data_bins/lim
+#     k_clean = noisy_data_k[clean_mask]
+#     bins_clean = noisy_data_bins[clean_mask]
+#     n = np.shape(noisy_data)[0]
+#     kfreq = np.fft.fftfreq(n) * n
+#     kfreq2D = np.meshgrid(kfreq, kfreq)
+#     knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2) ** (1 / 2)
+#     filtered_k_mask = knrm > k_clean[-1]
+#     noisy_data_FT = np.fft.fft2(noisy_data)
+#     random_phases = np.exp(1j*np.angle(np.fft.fft2(np.random.random(size=np.shape(noisy_data)))))
+#     if type(slope) == list:
+#         several_new_data = np.zeros((len(slope),n,n))
+#         for i in range(len(slope)):
+#             new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope[i]/2),noisy_data_FT)
+#             several_new_data[i] = np.real(np.fft.ifft2(new_data_FT))
+#         return several_new_data
+#     else:
+#         new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope/2),noisy_data_FT)
+#         new_data = np.real(np.fft.ifft2(new_data_FT))
+#         return new_data
+
+def Gaussian(size, fwhm):
+    x = np.arange(0, size, 1, float)
+    y = x[:,np.newaxis]
+    x0 = y0 = size // 2
+    return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
+    
+def generate_fbm(noisy_data,noise,slope,frac=10):
+    N = np.shape(noisy_data)[-1]
+    k, noise_bins = power_spectrum(noise)
+    _, noisy_data_bins = power_spectrum(noisy_data)
+    estimated_data_bins = noisy_data_bins - noise_bins
+    clean_mask = estimated_data_bins > noise_bins / frac
+    k_crit = np.max(k[clean_mask])
+    gauss = Gaussian(N,k_crit)
+    noisy_data_FT = np.fft.fftshift(np.fft.fft2(noisy_data))
+    filtered_noisy_data_FT = noisy_data_FT * gauss
+    filtered_noisy_data = np.real(np.fft.ifft2(np.fft.ifftshift(filtered_noisy_data_FT)))
+    _, f_noisy_data_bins = power_spectrum(filtered_noisy_data)
+    kfreq = np.fft.fftfreq(N) * N
     kfreq2D = np.meshgrid(kfreq, kfreq)
-    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2) ** (1 / 2)
-    filtered_k_mask = knrm > k_clean[-1]
-    noisy_data_FT = np.fft.fft2(noisy_data)
     random_phases = np.exp(1j*np.angle(np.fft.fft2(np.random.random(size=np.shape(noisy_data)))))
-    if type(slope) == list:
-        several_new_data = np.zeros((len(slope),n,n))
-        for i in range(len(slope)):
-            new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope[i]/2),noisy_data_FT)
-            several_new_data[i] = np.real(np.fft.ifft2(new_data_FT))
-        return several_new_data
-    else:
-        new_data_FT = np.where(filtered_k_mask,np.sqrt(bins_clean[-1])*random_phases*(knrm/k_clean[-1])**(slope/2),noisy_data_FT)
-        new_data = np.real(np.fft.ifft2(new_data_FT))
-        return new_data
+    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2) ** (1 / 2)
+    fbm_FT = knrm**(slope/2) * random_phases
+    fbm_FT[0,0] = 1 * random_phases[0,0]
+    k_fbm = int(k_crit/2)
+    fbm_FT = fbm_FT / np.mean(np.abs(fbm_FT),where = knrm==k_fbm) * np.sqrt(f_noisy_data_bins[k_fbm])
+    igauss = 1-Gaussian(N,k_fbm)
+    f_fbm_FT = np.fft.ifftshift(np.fft.fftshift(fbm_FT)*igauss**4)
+    fbm = np.real(np.fft.ifft2(f_fbm_FT))
+    return filtered_noisy_data+fbm
     
 def create_batch(n_freq, n, device):
     batch = torch.zeros([n_freq,n_batch,batch_size,M,N])
@@ -542,7 +573,7 @@ if __name__ == "__main__":
     
     eval_cnt = 0
     
-    Initial_condition = np.array([generate_partial_fbm(Mixture_1,Noise_1+CMB,slope),generate_partial_fbm(Mixture_2,Noise_2+CMB,slope)])
+    Initial_condition = np.array([generate_fbm(Mixture_1,Noise_1+CMB,slope),generate_fbm(Mixture_2,Noise_2+CMB,slope)])
     
     Dust_tilde0 = Initial_condition
     
