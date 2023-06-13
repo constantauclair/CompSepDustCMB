@@ -596,7 +596,7 @@ if __name__ == "__main__":
         coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias[1],dim=0)))
         
         # Minimization
-        result = opt.minimize(objective1, Dust_tilde0.ravel(), method=method, jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
@@ -679,7 +679,7 @@ if __name__ == "__main__":
             mask_L7 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L7,cross=True)
         
         # Minimization
-        result = opt.minimize(objective2, Current_maps.ravel(), method=method, jac=True, tol=None, options=optim_params2)
+        result = opt.minimize(objective2, Current_maps.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         
         # Reshaping
