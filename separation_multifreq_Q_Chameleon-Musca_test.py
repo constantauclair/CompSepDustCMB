@@ -56,7 +56,7 @@ args = parser.parse_args()
 losses = args.loss_list
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+"_217.npy"
+file_name="separation_multifreq_Q_Chameleon-Musca_L"+losses+"_fbm"+str(slope)+"_353.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -77,18 +77,18 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-Dust_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_217.npy')[1]
-Dust_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_217.npy')[1]
+Dust_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[1]
+Dust_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[1]
     
 CMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[1,0]
     
 CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[1]
 
-Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1,0]
-Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1,0]
+Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1,0]
+Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1,0]
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1]
-Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[1]
+Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1]
+Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[1]
 
 TCMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[0,0]
 
