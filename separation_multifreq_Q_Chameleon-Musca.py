@@ -634,7 +634,7 @@ if __name__ == "__main__":
         if '6' in losses:
             coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.unsqueeze(0).expand((n_freq,n_batch,batch_size,M,N)))
         if '7' in losses:
-            coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
+            coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
         
         # Coeffs target computation
         if '1' in losses:
