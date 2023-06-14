@@ -248,11 +248,13 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-            u_noisy, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
+            u_cross, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
+            u_A, _ = wph_op.preconfigure(x[0] + contamination_batch[0,i], pbc=pbc)
+            u_B, _ = wph_op.preconfigure(x[1] + contamination_batch[1,i], pbc=pbc)
             for j in range(nb_chunks):
-                coeffs_chunk_cross, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                coeffs_chunk_A, _ = wph_op.apply(x[0] + contamination_batch[0,i], j, norm=None, ret_indices=True, pbc=pbc)
-                coeffs_chunk_B, _ = wph_op.apply(x[1] + contamination_batch[1,i], j, norm=None, ret_indices=True, pbc=pbc)
+                coeffs_chunk_cross, indices = wph_op.apply(u_cross, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                coeffs_chunk_A, _ = wph_op.apply(u_A, j, norm=None, ret_indices=True, pbc=pbc)
+                coeffs_chunk_B, _ = wph_op.apply(u_B, j, norm=None, ret_indices=True, pbc=pbc)
                 coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
                 batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
                 del coeffs_chunk, indices
@@ -398,11 +400,13 @@ def compute_loss(mode,x,coeffs_target,std,mask):
     # Mode for L4, L5 and L9
     if mode in ['L4','L5','L9']:
         loss_tot = torch.zeros(1)
-        u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=True)
+        u_cross, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=True)
+        u_A, _ = wph_op.preconfigure(x[0], requires_grad=True, pbc=pbc)
+        u_B, _ = wph_op.preconfigure(x[1], requires_grad=True, pbc=pbc)
         for i in range(nb_chunks):
-            coeffs_chunk_cross, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
-            coeffs_chunk_A, _ = wph_op.apply(x[0], i, norm=None, ret_indices=True, pbc=pbc)
-            coeffs_chunk_B, _ = wph_op.apply(x[1], i, norm=None, ret_indices=True, pbc=pbc)
+            coeffs_chunk_cross, indices = wph_op.apply(u_cross, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            coeffs_chunk_A, _ = wph_op.apply(u_A, i, norm=None, ret_indices=True, pbc=pbc)
+            coeffs_chunk_B, _ = wph_op.apply(u_B, i, norm=None, ret_indices=True, pbc=pbc)
             coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
             loss.backward(retain_graph=True)
