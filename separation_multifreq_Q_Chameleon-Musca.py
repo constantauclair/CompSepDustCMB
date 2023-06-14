@@ -632,7 +632,7 @@ if __name__ == "__main__":
         if '4' in losses:
             bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
         if '6' in losses:
-            coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.expand((n_freq,n_batch,batch_size,M,N)))
+            coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.unsqueeze(0).expand((n_freq,n_batch,batch_size,M,N)))
         if '7' in losses:
             coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
         
