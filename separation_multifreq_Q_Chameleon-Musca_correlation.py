@@ -244,15 +244,17 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
     # Mode for L4
     if mode == 'cross_freq_bias':
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
-        coeffs_ref = np.abs(wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True).type(dtype=ref_type)) / np.sqrt(np.abs( wph_op.apply(x[0], norm=None, pbc=pbc).type(dtype=ref_type)*wph_op.apply(x[1], norm=None, pbc=pbc).type(dtype=ref_type) ))
+        coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True).type(dtype=ref_type) / torch.sqrt(torch.abs( wph_op.apply(x[0], norm=None, pbc=pbc).type(dtype=ref_type)*wph_op.apply(x[1], norm=None, pbc=pbc).type(dtype=ref_type) ))
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
-            denominator = np.sqrt(np.abs( wph_op.apply(x[0] + contamination_batch[0,i], norm=None, pbc=pbc).type(dtype=ref_type)*wph_op.apply(x[1] + contamination_batch[1,i], norm=None, pbc=pbc).type(dtype=ref_type) ))
             for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,indices] = (coeffs_chunk/denominator[indices]).type(dtype=ref_type) - coeffs_ref[indices]
+                coeffs_chunk_cross, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                coeffs_chunk_A, _ = wph_op.apply(u_noisy[0], j, norm=None, ret_indices=True, pbc=pbc)
+                coeffs_chunk_B, _ = wph_op.apply(u_noisy[1], j, norm=None, ret_indices=True, pbc=pbc)
+                coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
+                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
@@ -333,7 +335,7 @@ def compute_mask(x,std,real_imag=True,cross=False):
     if not cross:
         coeffs = wph_op.apply(x,norm=None,pbc=pbc)
     if cross:
-        coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross) / np.sqrt(np.abs( wph_op.apply(x[0],norm=None,pbc=pbc)*wph_op.apply(x[1],norm=None,pbc=pbc) ))
+        coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross) / torch.sqrt(torch.abs( wph_op.apply(x[0],norm=None,pbc=pbc)*wph_op.apply(x[1],norm=None,pbc=pbc) ))
     if not real_imag:
         mask = torch.logical_and(torch.abs(coeffs).to(device) > 1e-7, torch.abs(std).to(device) > 0)
     if real_imag:
@@ -401,7 +403,7 @@ def compute_loss(mode,x,coeffs_target,std,mask):
             coeffs_chunk_cross, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
             coeffs_chunk_A, _ = wph_op.apply(u[0], i, norm=None, ret_indices=True, pbc=pbc)
             coeffs_chunk_B, _ = wph_op.apply(u[1], i, norm=None, ret_indices=True, pbc=pbc)
-            coeffs_chunk = coeffs_chunk_cross / np.sqrt(np.abs( coeffs_chunk_A*coeffs_chunk_B ))
+            coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
