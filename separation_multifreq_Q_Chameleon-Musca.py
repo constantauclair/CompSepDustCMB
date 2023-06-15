@@ -307,16 +307,16 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             std = torch.std(COEFFS,axis=1)
     # Mode for L9
     if mode == 'cross_mean_mono':
-        COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
+        COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
         computed_conta = 0
         for i in range(n_batch):
-            batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
-            u_noisy, nb_chunks = wph_op.preconfigure([contamination_batch[:,i],cross_contamination_batch[:,i]], pbc=pbc, cross=True)
+            batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
+            u_noisy, nb_chunks = wph_op.preconfigure([contamination_batch[i],cross_contamination_batch[i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type)
+                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
                 del coeffs_chunk, indices
-            COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
+            COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
             del u_noisy, nb_chunks, batch_COEFFS
             sys.stdout.flush() # Flush the standard output
