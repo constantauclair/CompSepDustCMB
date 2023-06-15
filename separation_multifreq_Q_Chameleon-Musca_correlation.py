@@ -247,21 +247,13 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
         coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True).type(dtype=ref_type) / torch.sqrt(torch.abs( wph_op.apply(x[0], norm=None, pbc=pbc).type(dtype=ref_type)*wph_op.apply(x[1], norm=None, pbc=pbc).type(dtype=ref_type) ))
         computed_conta = 0
         for i in range(n_batch):
-            batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-            u_cross, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
-            u_A, _ = wph_op.preconfigure(x[0] + contamination_batch[0,i], pbc=pbc)
-            u_B, _ = wph_op.preconfigure(x[1] + contamination_batch[1,i], pbc=pbc)
-            for j in range(nb_chunks):
-                coeffs_chunk_cross, indices = wph_op.apply(u_cross, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                coeffs_chunk_A, _ = wph_op.apply(u_A, j, norm=None, ret_indices=True, pbc=pbc)
-                coeffs_chunk_B, _ = wph_op.apply(u_B, j, norm=None, ret_indices=True, pbc=pbc)
-                coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
-                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
-                del coeffs_chunk, indices
-            COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
+            coeffs_cross = wph_op.apply([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], norm=None, pbc=pbc, cross=True)
+            coeffs_A = wph_op.apply(x[0] + contamination_batch[0,i], norm=None, pbc=pbc)
+            coeffs_B = wph_op.apply(x[1] + contamination_batch[1,i], norm=None, pbc=pbc)
+            COEFFS[computed_conta:computed_conta+batch_size] = coeffs_cross / torch.sqrt(torch.abs( coeffs_A*coeffs_B )) - coeffs_ref
             computed_conta += batch_size
-            del u_noisy, nb_chunks, batch_COEFFS
-            sys.stdout.flush() # Flush the standard output
+            del coeffs_cross, coeffs_A, coeffs_B
+        sys.stdout.flush() # Flush the standard output
         if real_imag:
             bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
             std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
@@ -400,18 +392,14 @@ def compute_loss(mode,x,coeffs_target,std,mask):
     # Mode for L4, L5 and L9
     if mode in ['L4','L5','L9']:
         loss_tot = torch.zeros(1)
-        u_cross, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=True)
-        u_A, _ = wph_op.preconfigure(x[0], requires_grad=True, pbc=pbc)
-        u_B, _ = wph_op.preconfigure(x[1], requires_grad=True, pbc=pbc)
-        for i in range(nb_chunks):
-            coeffs_chunk_cross, indices = wph_op.apply(u_cross, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
-            coeffs_chunk_A, _ = wph_op.apply(u_A, i, norm=None, ret_indices=True, pbc=pbc)
-            coeffs_chunk_B, _ = wph_op.apply(u_B, i, norm=None, ret_indices=True, pbc=pbc)
-            coeffs_chunk = coeffs_chunk_cross / torch.sqrt(torch.abs( coeffs_chunk_A*coeffs_chunk_B ))
-            loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
-            loss.backward(retain_graph=True)
-            loss_tot += loss.detach().cpu()
-            del coeffs_chunk, indices, loss
+        coeffs_cross = wph_op.apply(x, norm=None, pbc=pbc, cross=True)
+        coeffs_A = wph_op.apply(x[0], norm=None, pbc=pbc)
+        coeffs_B = wph_op.apply(x[1], norm=None, pbc=pbc)
+        coeffs = coeffs_cross / torch.sqrt(torch.abs( coeffs_A*coeffs_B ))
+        loss = ( torch.sum(torch.abs( (torch.real(coeffs)[mask[0]] - coeffs_target[0][mask[0]]) / std[0][mask[0]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs)[mask[1]] - coeffs_target[1][mask[1]]) / std[1][mask[1]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
+        loss.backward(retain_graph=True)
+        loss_tot += loss.detach().cpu()
+        del coeffs_cross, coeffs_A, coeffs_B, loss
         return loss_tot
     # Mode for L5, L6 and L7
     if mode in ['L6','L7','L8']:
