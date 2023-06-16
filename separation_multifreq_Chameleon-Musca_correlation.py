@@ -275,7 +275,8 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure([contamination_batch[0,i],contamination_batch[1,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                wph_op.clear_normalization()
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm="auto", ret_indices=True, pbc=pbc, cross=True)
                 batch_COEFFS[:,indices] = coeffs_chunk
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
@@ -296,7 +297,8 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure([contamination_batch[:,i],cross_contamination_batch[:,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                wph_op.clear_normalization()
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm="auto", ret_indices=True, pbc=pbc, cross=True)
                 batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type)
                 del coeffs_chunk, indices
             COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
@@ -311,7 +313,12 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             std = torch.std(COEFFS,axis=1)
     return bias.to(device), std.to(device)
 
-def compute_mask(x,std,real_imag=True,cross=False,norm=None):
+def compute_mask(x,std,real_imag=True,cross=False):
+    if cross == True:
+        norm = "auto"
+    else:
+        norm = None
+    wph_op.clear_normalization()
     coeffs = wph_op.apply(x,norm=norm,pbc=pbc,cross=cross)
     if not real_imag:
         mask = torch.logical_and(torch.abs(coeffs).to(device) > 1e-7, torch.abs(std).to(device) > 0)
@@ -388,9 +395,10 @@ def compute_loss(mode,x,coeffs_target,std,mask):
     if mode in ['L6','L7','L8']:
         loss_tot_F1 = torch.zeros(1)
         loss_tot_F2 = torch.zeros(1)
+        wph_op.clear_normalization()
         u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, cross=True, pbc=pbc)
         for i in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, cross=True, pbc=pbc)
+            coeffs_chunk, indices = wph_op.apply(u, i, norm="auto", ret_indices=True, cross=True, pbc=pbc)
             # Loss F1
             loss_F1 = ( torch.sum(torch.abs( (torch.real(coeffs_chunk[0])[mask[0,0,indices]] - coeffs_target[0,0][indices][mask[0,0,indices]]) / std[0,0][indices][mask[0,0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk[0])[mask[1,0,indices]] - coeffs_target[1,0][indices][mask[1,0,indices]]) / std[1,0][indices][mask[1,0,indices]] ) ** 2) ) / ( mask[0,0].sum() + mask[1,0].sum() )
             loss_F1.backward(retain_graph=True)
