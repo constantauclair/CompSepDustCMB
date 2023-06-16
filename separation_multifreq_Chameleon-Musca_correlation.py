@@ -516,7 +516,7 @@ def objective2(x):
 if __name__ == "__main__":
     
     total_start_time = time.time()
-    print("Starting component separation with L"+losses+" and a FBM of slope "+str(slope)+" as initial condition.")
+    print("Starting component separation on "+polar+" with L"+losses+" and a FBM of slope "+str(slope)+" as initial condition.")
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
