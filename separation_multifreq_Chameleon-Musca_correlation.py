@@ -56,7 +56,7 @@ polar = args.channel
 losses = args.loss_list
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+".npy"
+file_name="separation_multifreq_Chameleon-Musca_correlation_"+polar+"_L"+losses+"_fbm"+str(slope)+".npy"
 
 if polar == 'I':
     polar_index = 0
@@ -246,13 +246,15 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
     # Mode for L4
     if mode == 'cross_freq_bias':
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
-        coeffs_ref = wph_op.apply([x[0],x[1]], norm=None, pbc=pbc, cross=True).type(dtype=ref_type)
+        wph_op.clear_normalization()
+        coeffs_ref = wph_op.apply([x[0],x[1]], norm="auto", pbc=pbc, cross=True).type(dtype=ref_type)
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure([x[0] + contamination_batch[0,i],x[1] + contamination_batch[1,i]], pbc=pbc, cross=True)
             for j in range(nb_chunks):
-                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                wph_op.clear_normalization()
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm="auto", ret_indices=True, pbc=pbc, cross=True)
                 batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
                 del coeffs_chunk, indices
             COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
@@ -309,8 +311,8 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             std = torch.std(COEFFS,axis=1)
     return bias.to(device), std.to(device)
 
-def compute_mask(x,std,real_imag=True,cross=False):
-    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+def compute_mask(x,std,real_imag=True,cross=False,norm=None):
+    coeffs = wph_op.apply(x,norm=norm,pbc=pbc,cross=cross)
     if not real_imag:
         mask = torch.logical_and(torch.abs(coeffs).to(device) > 1e-7, torch.abs(std).to(device) > 0)
     if real_imag:
@@ -373,9 +375,10 @@ def compute_loss(mode,x,coeffs_target,std,mask):
     # Mode for L4 and L5
     if mode in ['L4','L5']:
         loss_tot = torch.zeros(1)
+        wph_op.clear_normalization()
         u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=True)
         for i in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            coeffs_chunk, indices = wph_op.apply(u, i, norm="auto", ret_indices=True, pbc=pbc, cross=True)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
@@ -613,7 +616,8 @@ if __name__ == "__main__":
             coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
             coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0)))
         if '4' in losses:
-            coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
+            wph_op.clear_normalization()
+            coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm="auto", cross=True, pbc=pbc)
             coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0)))
         
         # Mask computation
