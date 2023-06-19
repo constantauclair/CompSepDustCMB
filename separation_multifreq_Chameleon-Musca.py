@@ -51,10 +51,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('channel', type=str)
 parser.add_argument('loss_list', type=str)
 parser.add_argument('fbm_slope', type=int)
+parser.add_argument('gpu_to_use',type=int)
 args = parser.parse_args()
 polar = args.channel
 losses = args.loss_list
 slope = args.fbm_slope
+device = args.gpu_to_use
 
 file_name="separation_multifreq_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+".npy"
 
@@ -73,8 +75,6 @@ iter_per_step2 = 100
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
-
-device = 0 # GPU to use
 
 Mn = 100 # Number of noises per iteration
 batch_size = 10
