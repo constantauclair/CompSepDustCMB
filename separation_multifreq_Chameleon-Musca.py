@@ -48,15 +48,15 @@ pbc = True
 method = 'L-BFGS-B'
 
 parser = argparse.ArgumentParser()
+parser.add_argument('gpu_to_use',type=int)
 parser.add_argument('channel', type=str)
 parser.add_argument('loss_list', type=str)
 parser.add_argument('fbm_slope', type=int)
-parser.add_argument('gpu_to_use',type=int)
 args = parser.parse_args()
+device = args.gpu_to_use
 polar = args.channel
 losses = args.loss_list
 slope = args.fbm_slope
-device = args.gpu_to_use
 
 file_name="separation_multifreq_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+".npy"
 
