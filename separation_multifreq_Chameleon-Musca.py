@@ -312,14 +312,14 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
     # Mode for L9
     if mode == 'cross_T':
         COEFFS = torch.zeros((n_freq,Mn,coeffs_number)).type(dtype=ref_type)
-        coeffs_ref = wph_op.apply([x,torch.from_numpy(T_Dust).expand((n_freq,M,N)).to(device)], norm=None, pbc=pbc, cross=True).type(dtype=ref_type)
+        coeffs_ref = wph_op.apply([x.unsqueeze(1).expand(contamination_batch[:,0].size()),torch.from_numpy(T_Dust).expand(contamination_batch[:,0].size())], norm=None, pbc=pbc, cross=True).type(dtype=ref_type)
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
             u_noisy, nb_chunks = wph_op.preconfigure([x.unsqueeze(1).expand(contamination_batch[:,i].size()) + contamination_batch[:,i],torch.from_numpy(T_Dust).expand(contamination_batch[:,i].size())], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
-                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
+                batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[:,:,indices]
                 del coeffs_chunk, indices
             COEFFS[:,computed_conta:computed_conta+batch_size] = batch_COEFFS
             computed_conta += batch_size
