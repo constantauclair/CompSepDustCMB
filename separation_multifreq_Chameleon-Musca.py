@@ -316,7 +316,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
         computed_conta = 0
         for i in range(n_batch):
             batch_COEFFS = torch.zeros((n_freq,batch_size,coeffs_number)).type(dtype=ref_type)
-            u_noisy, nb_chunks = wph_op.preconfigure([x+contamination_batch[:,i],torch.from_numpy(T_Dust).expand((n_freq,M,N)).to(device)], pbc=pbc, cross=True)
+            u_noisy, nb_chunks = wph_op.preconfigure([x.unsqueeze(1).expand(contamination_batch[:,i].size()) + contamination_batch[:,i],torch.from_numpy(T_Dust).expand((n_freq,M,N)).to(device)], pbc=pbc, cross=True)
             for j in range(nb_chunks):
                 coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
                 batch_COEFFS[:,:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices]
