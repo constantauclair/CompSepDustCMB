@@ -391,9 +391,9 @@ if __name__ == "__main__":
             mask_L2 = compute_mask(Current_maps[1],std_L2)
         if '6' in losses:
             bias_L6, std_L6 = compute_coeffs_mean_std('L6', Noise_D_batch+CMB_D_batch, x=Current_maps[1])
-            coeffs_L6 = wph_op.apply(torch.from_numpy(Mixture_D).to(device), norm=None, pbc=pbc)
+            coeffs_L6 = wph_op.apply([torch.from_numpy(Mixture_D).to(device),torch.from_numpy(T_Dust_353).to(device)], norm=None, pbc=pbc, cross=True)
             coeffs_target_L6 = torch.cat((torch.unsqueeze(torch.real(coeffs_L6) - bias_L6[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L6) - bias_L6[1],dim=0)))
-            mask_L6 = compute_mask(Current_maps[1],std_L6,cross=True)
+            mask_L6 = compute_mask([Current_maps[1],torch.from_numpy(T_Dust_353).to(device)],std_L6,cross=True)
         # Minimization
         result = opt.minimize(objective2, Current_maps.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
