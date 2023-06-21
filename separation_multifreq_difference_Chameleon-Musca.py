@@ -222,7 +222,7 @@ def compute_coeffs_mean_std(mode,contamination_batch,x=None):
 
 def compute_mask(x,std,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    mask = torch.cat((torch.logical_and(torch.real(coeffs).to(device) > 1e-7, std[0].to(device) > 0),torch.logical_and(torch.imag(coeffs).to(device) > 1e-7, std[1].to(device) > 0)))
+    mask = torch.cat((torch.unsqueeze(torch.logical_and(torch.real(coeffs).to(device) > 1e-7, std[0].to(device) > 0),dim=0),torch.unsqueeze(torch.logical_and(torch.imag(coeffs).to(device) > 1e-7, std[1].to(device) > 0),dim=0)))
     return mask.to(device)
 
 def compute_loss(x,coeffs_target,std,mask,cross=False):
@@ -345,9 +345,9 @@ if __name__ == "__main__":
         mask_L2 = compute_mask(Dust_tilde0[1], std_L2).to(device)
         # Coeffs target computation
         coeffs_L1 = wph_op.apply(torch.from_numpy(Mixture_353).to(device), norm=None, pbc=pbc)
-        coeffs_target_L1 = torch.cat((torch.real(coeffs_L1) - bias_L1[0],torch.imag(coeffs_L1) - bias_L1[1]))
+        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         coeffs_L2 = wph_op.apply(torch.from_numpy(Mixture_D).to(device), norm=None, pbc=pbc)
-        coeffs_target_L2 = torch.cat((torch.real(coeffs_L2) - bias_L2[0],torch.imag(coeffs_L2) - bias_L2[1]))
+        coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
         # Minimization
         result = opt.minimize(objective1, Dust_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, Dust_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
@@ -382,17 +382,17 @@ if __name__ == "__main__":
         if '1' in losses:
             bias_L1, std_L1 = compute_coeffs_mean_std('L1', Noise_353_batch+CMB_batch, x=Current_maps[0])
             coeffs_L1 = wph_op.apply(torch.from_numpy(Mixture_353).to(device), norm=None, pbc=pbc)
-            coeffs_target_L1 = torch.cat((torch.real(coeffs_L1) - bias_L1[0],torch.imag(coeffs_L1) - bias_L1[1]))
+            coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
             mask_L1 = compute_mask(Current_maps[0],std_L1)
         if '2' in losses:
             bias_L2, std_L2 = compute_coeffs_mean_std('L2', Noise_D_batch+CMB_D_batch, x=Current_maps[1])
             coeffs_L2 = wph_op.apply(torch.from_numpy(Mixture_D).to(device), norm=None, pbc=pbc)
-            coeffs_target_L2 = torch.cat((torch.real(coeffs_L2) - bias_L2[0],torch.imag(coeffs_L2) - bias_L2[1]))
+            coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
             mask_L2 = compute_mask(Current_maps[1],std_L2)
         if '6' in losses:
             bias_L6, std_L6 = compute_coeffs_mean_std('L6', Noise_D_batch+CMB_D_batch, x=Current_maps[1])
             coeffs_L6 = wph_op.apply(torch.from_numpy(Mixture_D).to(device), norm=None, pbc=pbc)
-            coeffs_target_L6 = torch.cat((torch.real(coeffs_L6) - bias_L6[0],torch.imag(coeffs_L6) - bias_L6[1]))
+            coeffs_target_L6 = torch.cat((torch.unsqueeze(torch.real(coeffs_L6) - bias_L6[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L6) - bias_L6[1],dim=0)))
             mask_L6 = compute_mask(Current_maps[1],std_L6,cross=True)
         # Minimization
         result = opt.minimize(objective2, Current_maps.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
