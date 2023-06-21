@@ -276,22 +276,22 @@ def objective2(x):
     L = 0 # Define total loss 
     # Compute the losses
     if '1' in losses:
-        L1 = compute_loss('L1',u_353,coeffs_target_L1,std_L1,mask_L1)
+        L1 = compute_loss(u_353,coeffs_target_L1,std_L1,mask_L1)
         L = L + L1
     if '2' in losses:
-        L2 = compute_loss('L2',u_D,coeffs_target_L2,std_L2,mask_L2)
+        L2 = compute_loss(u_D,coeffs_target_L2,std_L2,mask_L2)
         L = L + L2
     if '3' in losses:
-        L3 = compute_loss('L3',u_CMB,coeffs_target_L3,std_L3,mask_L3)
+        L3 = compute_loss(u_CMB,coeffs_target_L3,std_L3,mask_L3)
         L = L + L3
     if '4' in losses:
-        L4 = compute_loss('L4',torch.from_numpy(Mixture_353).to(device) - u_353 - u_CMB,coeffs_target_L4,std_L4,mask_L4)
+        L4 = compute_loss(torch.from_numpy(Mixture_353).to(device) - u_353 - u_CMB,coeffs_target_L4,std_L4,mask_L4)
         L = L + L4
     if '5' in losses:
-        L5 = compute_loss('L5',torch.from_numpy(Mixture_D).to(device) - u_D - (1-alpha)*u_CMB,coeffs_target_L5,std_L5,mask_L5)
+        L5 = compute_loss(torch.from_numpy(Mixture_D).to(device) - u_D - (1-alpha)*u_CMB,coeffs_target_L5,std_L5,mask_L5)
         L = L + L5
     if '6' in losses:
-        L6 = compute_loss('L6',[u_D,torch.from_numpy(T_Dust_353).to(device)],coeffs_target_L6,std_L6,mask_L6,cross=True)
+        L6 = compute_loss([u_D,torch.from_numpy(T_Dust_353).to(device)],coeffs_target_L6,std_L6,mask_L6,cross=True)
         L = L + L6
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print("L = "+str(round(L.item(),3)))
