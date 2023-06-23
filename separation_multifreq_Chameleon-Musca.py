@@ -34,6 +34,7 @@ L8 : u_CMB * n = 0
 
 # Cross with I
 L9 : (u_dust + CMB + n) * I_dust_353 = d * I_dust_353
+LA : (u_dust_217 - alpha * u_dust_353) * I_dust_353 = (d_217 - alpha * d_353) * I_dust_353
 '''
 #######
 # INPUT PARAMETERS
@@ -79,6 +80,8 @@ device = 0 # GPU to use
 Mn = 100 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
+
+alpha = 0.17556374501554545
 
 #######
 # DATA
@@ -332,6 +335,29 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             bias = torch.mean(COEFFS,axis=1)
             std = torch.std(COEFFS,axis=1)
     return bias.to(device), std.to(device)
+    # Mode for LA 
+    if mode == 'cross_T_diff':
+        COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
+        coeffs_ref = wph_op.apply([x.unsqueeze(0).expand(contamination_batch[0].size()),torch.from_numpy(T_Dust).expand(contamination_batch[0].size())], norm=None, pbc=pbc, cross=True).type(dtype=ref_type)
+        computed_conta = 0
+        for i in range(n_batch):
+            batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
+            u_noisy, nb_chunks = wph_op.preconfigure([x.unsqueeze(0).expand(contamination_batch[i].size()) + contamination_batch[i],torch.from_numpy(T_Dust).expand(contamination_batch[i].size())], pbc=pbc, cross=True)
+            for j in range(nb_chunks):
+                coeffs_chunk, indices = wph_op.apply(u_noisy, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+                batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[:,indices]
+                del coeffs_chunk, indices
+            COEFFS[computed_conta:computed_conta+batch_size] = batch_COEFFS
+            computed_conta += batch_size
+            del u_noisy, nb_chunks, batch_COEFFS
+            sys.stdout.flush() # Flush the standard output
+        if real_imag:
+            bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+            std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+        else:
+            bias = torch.mean(COEFFS,axis=1)
+            std = torch.std(COEFFS,axis=1)
+    return bias.to(device), std.to(device)
 
 def compute_mask(x,std,real_imag=True,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
@@ -423,6 +449,17 @@ def compute_loss(mode,x,coeffs_target,std,mask):
             #
             del coeffs_chunk, indices, loss_F1, loss_F2
         return loss_tot_F1, loss_tot_F2
+    # Mode for LA
+    if mode in ['LA']:
+        loss_tot = torch.zeros(1)
+        u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, cross=True, pbc=pbc)
+        for i in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, cross=True, pbc=pbc)
+            loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
+            loss.backward(retain_graph=True)
+            loss_tot += loss.detach().cpu()
+            del coeffs_chunk, indices, loss
+        return loss_tot
 
 #######
 # OBJECTIVE FUNCTIONS
@@ -501,6 +538,9 @@ def objective2(x):
     if '9' in losses:
         L9_F1, L9_F2 = compute_loss('L9',[u_dust,torch.from_numpy(T_Dust).expand((n_freq,M,N)).to(device)],coeffs_target_L9,std_L9,mask_L9)
         L = L + L9_F1 + L9_F2
+    if 'A' in losses:
+        LA = compute_loss('LA',[u_dust[0]-alpha*u_dust[1],torch.from_numpy(T_Dust).to(device)],coeffs_target_LA,std_LA,mask_LA)
+        L = L + LA
         
     # Reshape the gradient
     u_grad = u.grad.cpu().numpy().astype(x.dtype)
@@ -531,6 +571,8 @@ def objective2(x):
     if '9' in losses:
         print("L9 F1 = "+str(round(L9_F1.item(),3)))
         print("L9 F2 = "+str(round(L9_F2.item(),3)))
+    if 'A' in losses:
+        print("LA = "+str(round(LA.item(),3)))
     print("")
 
     eval_cnt += 1
@@ -598,26 +640,30 @@ if __name__ == "__main__":
     # Creating new set of variables
     Current_maps0 = np.array([Dust_tilde0[0],Dust_tilde0[1],np.random.normal(np.mean(CMB),np.std(CMB),size=(M,N))])
     
-    # Computation of the coeffs and std
+    # Computation of the coeffs, std and mask
+    loss_data_mean_start_time = time.time()
     if '2' in losses:
+        start_time_L2 = time.time()
         coeffs_target_L2, std_L2 = compute_coeffs_mean_std('mean_monofreq', CMB_batch)
-    if '3' in losses:
-        coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
-    if '5' in losses:
-        coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_freq_mean', Noise_batch)
-    if '8' in losses:
-        coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand(Noise_batch.size()), cross_contamination_batch=Noise_batch)
-    
-    # Mask computation
-    if '2' in losses:
         mask_L2 = compute_mask(torch.from_numpy(CMB).to(device),std_L2)
+        print(f"L2 data computed in {time.time()-start_time_L2}")
     if '3' in losses:
+        start_time_L3 = time.time()
+        coeffs_target_L3, std_L3 = compute_coeffs_mean_std('mean', Noise_batch)
         mask_L3 = compute_mask(torch.from_numpy(Noise).to(device),std_L3)
+        print(f"L3 data computed in {time.time()-start_time_L3}")
     if '5' in losses:
+        start_time_L5 = time.time()
+        coeffs_target_L5, std_L5 = compute_coeffs_mean_std('cross_freq_mean', Noise_batch)
         mask_L5 = compute_mask([torch.from_numpy(Noise[0]).to(device),torch.from_numpy(Noise[1]).to(device)],std_L5,cross=True)
+        print(f"L5 data computed in {time.time()-start_time_L5}")
     if '8' in losses:
+        start_time_L8 = time.time()
+        coeffs_target_L8, std_L8 = compute_coeffs_mean_std('cross_mean', CMB_batch.expand(Noise_batch.size()), cross_contamination_batch=Noise_batch)
         mask_L8 = compute_mask([torch.from_numpy(CMB).to(device).expand((n_freq,M,N)),torch.from_numpy(Noise).to(device)],std_L8,cross=True)
-    
+        print(f"L8 data computed in {time.time()-start_time_L8}")
+    print(f"Loss data computed in {time.time() - loss_data_mean_start_time}")
+        
     Current_maps = Current_maps0
     
     # We perform a minimization of the objective function, using the noisy map as the initial map
@@ -628,41 +674,48 @@ if __name__ == "__main__":
         # Initialization of the map
         Current_maps = torch.from_numpy(Current_maps).to(device)
         
-        # Bias computation
+        # Bias, coeffs target and mask computation
+        loss_data_start_time = time.time()
         if '1' in losses:
+            start_time_L1 = time.time()
             bias_L1, std_L1 = compute_coeffs_mean_std('classic_bias', Noise_batch+CMB_batch.expand(Noise_batch.size()), x=Current_maps[:n_freq])
-        if '4' in losses:
-            bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
-        if '6' in losses:
-            coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.unsqueeze(0).expand((n_freq,n_batch,batch_size,M,N)))
-        if '7' in losses:
-            coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
-        if '9' in losses:
-            bias_L9, std_L9 = compute_coeffs_mean_std('cross_T', Noise_batch+CMB_batch.expand(Noise_batch.size()), x=Current_maps[:n_freq])
-        
-        # Coeffs target computation
-        if '1' in losses:
-            coeffs_d = wph_op.apply(torch.from_numpy(Mixture), norm=None, pbc=pbc)
+            coeffs_d = wph_op.apply(torch.from_numpy(Mixture).to(device), norm=None, pbc=pbc)
             coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_d) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_d) - bias_L1[1],dim=0)))
-        if '4' in losses:
-            coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]),torch.from_numpy(Mixture[1])], norm=None, cross=True, pbc=pbc)
-            coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0)))
-        if '9' in losses:
-            coeffs_dT = wph_op.apply([torch.from_numpy(Mixture),torch.from_numpy(T_Dust).expand((n_freq,M,N))], norm=None, cross=True, pbc=pbc)
-            coeffs_target_L9 = torch.cat((torch.unsqueeze(torch.real(coeffs_dT) - bias_L9[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dT) - bias_L9[1],dim=0)))
-        
-        # Mask computation
-        if '1' in losses:
             mask_L1 = compute_mask(Current_maps[:n_freq],std_L1)
+            print(f"L1 data computed in {time.time()-start_time_L1}")
         if '4' in losses:
+            start_time_L4 = time.time()
+            bias_L4, std_L4 = compute_coeffs_mean_std('cross_freq_bias', Noise_batch, x=Current_maps[:n_freq])
+            coeffs_dd = wph_op.apply([torch.from_numpy(Mixture[0]).to(device),torch.from_numpy(Mixture[1]).to(device)], norm=None, cross=True, pbc=pbc)
+            coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_dd) - bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dd) - bias_L4[1],dim=0)))
             mask_L4 = compute_mask([Current_maps[0],Current_maps[1]],std_L4,cross=True)
+            print(f"L4 data computed in {time.time()-start_time_L4}")
         if '6' in losses:
+            start_time_L6 = time.time()
+            coeffs_target_L6, std_L6 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=CMB_batch.unsqueeze(0).expand((n_freq,n_batch,batch_size,M,N)))
             mask_L6 = compute_mask([Current_maps[:n_freq],Current_maps[2].expand((2,M,N))],std_L6,cross=True)
+            print(f"L6 data computed in {time.time()-start_time_L6}")
         if '7' in losses:
+            start_time_L7 = time.time()
+            coeffs_target_L7, std_L7 = compute_coeffs_mean_std('cross_mean', Current_maps[:n_freq].unsqueeze(1).unsqueeze(1).expand((n_freq,n_batch,batch_size,M,N)), cross_contamination_batch=Noise_batch)
             mask_L7 = compute_mask([Current_maps[:n_freq],torch.from_numpy(Noise).to(device)],std_L7,cross=True)
+            print(f"L7 data computed in {time.time()-start_time_L7}")
         if '9' in losses:
+            start_time_L9 = time.time()
+            bias_L9, std_L9 = compute_coeffs_mean_std('cross_T', Noise_batch+CMB_batch.expand(Noise_batch.size()), x=Current_maps[:n_freq])
+            coeffs_dT = wph_op.apply([torch.from_numpy(Mixture).to(device),torch.from_numpy(T_Dust).to(device).expand((n_freq,M,N))], norm=None, cross=True, pbc=pbc)
+            coeffs_target_L9 = torch.cat((torch.unsqueeze(torch.real(coeffs_dT) - bias_L9[0],dim=0),torch.unsqueeze(torch.imag(coeffs_dT) - bias_L9[1],dim=0)))
             mask_L9 = compute_mask([Current_maps[:n_freq],torch.from_numpy(T_Dust).expand((n_freq,M,N)).to(device)],std_L9,cross=True)
-        
+            print(f"L9 data computed in {time.time()-start_time_L9}")
+        if 'A' in losses:
+            start_time_LA = time.time()
+            bias_LA, std_LA = compute_coeffs_mean_std('cross_T_diff', Noise_batch[0]-alpha*Noise_batch[1] + (1-alpha)*CMB_batch, x=Current_maps[0]-alpha*Current_maps[1])
+            coeffs_DT = wph_op.apply([torch.from_numpy(Mixture[0]-alpha*Mixture[1]).to(device),torch.from_numpy(T_Dust).to(device)], norm=None, cross=True, pbc=pbc)
+            coeffs_target_LA = torch.cat((torch.unsqueeze(torch.real(coeffs_DT) - bias_LA[0],dim=0),torch.unsqueeze(torch.imag(coeffs_DT) - bias_LA[1],dim=0)))
+            mask_LA = compute_mask([Current_maps[0]-alpha*Current_maps[1],torch.from_numpy(T_Dust).to(device)],std_LA,cross=True)
+            print(f"LA data computed in {time.time()-start_time_LA}")
+        print(f"Loss data for era {str(i+1)} computed in {time.time() - loss_data_start_time}")
+            
         # Minimization
         result = opt.minimize(objective2, Current_maps.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, Current_maps, niter, msg = result['fun'], result['x'], result['nit'], result['message']
