@@ -258,7 +258,7 @@ def compute_bias_std_T(u, conta):
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure([u + conta[i],torch.from_numpy(T_353).to(device)], pbc=pbc, cross=True)
+        u, nb_chunks = wph_op.preconfigure([u + conta[i],torch.from_numpy(T_353).expand(conta[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
