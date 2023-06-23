@@ -334,7 +334,6 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
         else:
             bias = torch.mean(COEFFS,axis=1)
             std = torch.std(COEFFS,axis=1)
-    return bias.to(device), std.to(device)
     # Mode for LA 
     if mode == 'cross_T_diff':
         COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
@@ -355,8 +354,8 @@ def compute_coeffs_mean_std(mode,contamination_batch,cross_contamination_batch=N
             bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
             std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
         else:
-            bias = torch.mean(COEFFS,axis=1)
-            std = torch.std(COEFFS,axis=1)
+            bias = torch.mean(COEFFS,axis=0)
+            std = torch.std(COEFFS,axis=0)
     return bias.to(device), std.to(device)
 
 def compute_mask(x,std,real_imag=True,cross=False):
