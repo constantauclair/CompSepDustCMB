@@ -251,14 +251,14 @@ def compute_bias_std_noise(conta_A, conta_B):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias.to(device), std.to(device)
 
-def compute_bias_std_T(u, conta):
-    coeffs_ref = wph_op.apply([u,torch.from_numpy(T_353).to(device)], norm=None, pbc=pbc, cross=True)
+def compute_bias_std_T(u_A, conta_A):
+    coeffs_ref = wph_op.apply([u_A,torch.from_numpy(T_353).to(device)], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure([u + conta[i],torch.from_numpy(T_353).expand(conta[i].size()).to(device)], pbc=pbc, cross=True)
+        u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(T_353).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
