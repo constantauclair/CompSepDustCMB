@@ -52,12 +52,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('channel', type=str)
 parser.add_argument('loss_list', type=str)
 parser.add_argument('fbm_slope', type=int)
+parser.add_argument('contamination', type=int)
 args = parser.parse_args()
 polar = args.channel
 losses = args.loss_list
 slope = args.fbm_slope
+conta = args.contamination
 
-file_name="separation_multifreq_halfmissions_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+".npy"
+file_name="separation_multifreq_halfmissions_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_conta="+str(conta)+".npy"
 
 if polar == 'Q':
     polar_index = 1
@@ -93,30 +95,30 @@ s_353 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[po
 T_353 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[0]
     
 # CMB
-CMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index,0]
-    
 CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index,:Mn]
 
-# Noise
-n_217_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,0]*np.sqrt(2)
-n_217_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,Mn]*np.sqrt(2)
-    
-n_217 = (n_217_1 + n_217_2)/2
+CMB = CMB_syn[conta]
 
+# Noise
 n_217_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,:Mn]*np.sqrt(2)
 n_217_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,Mn:]*np.sqrt(2)
 
 n_217_syn = (n_217_1_syn + n_217_2_syn)/2
 
-n_353_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,0]*np.sqrt(2)
-n_353_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,Mn]*np.sqrt(2)
-
-n_353 = (n_353_1 + n_353_2)/2    
+n_217_1 = n_217_1_syn[conta]
+n_217_2 = n_217_2_syn[conta]
+    
+n_217 = (n_217_1 + n_217_2)/2
 
 n_353_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,:Mn]*np.sqrt(2)
 n_353_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,Mn:]*np.sqrt(2)
 
 n_353_syn = (n_353_1_syn + n_353_2_syn)/2
+
+n_353_1 = n_353_1_syn[conta]
+n_353_2 = n_353_2_syn[conta]
+
+n_353 = (n_353_1 + n_353_2)/2    
 
 # Mixture
 d_217_1 = s_217 + CMB + n_217_1
