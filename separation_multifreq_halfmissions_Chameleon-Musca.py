@@ -22,7 +22,7 @@ Loss terms:
 # Dust
 L1 : (u_217 + CMB + n_217_1) x (u_217 + CMB + n_217_2) = d_217_1 x d_217_2
 L2 : (u_353 + CMB + n_353_1) x (u_353 + CMB + n_353_2) = d_353_1 x d_353_2
-L3 : (u_217 + CMB + n_217) x (u_353 + CMB + n_353) = d_217 x d_353
+L3 : (u_D + CMB + n_D_1) x (u_D + CMB + n_D_2) = d_D_1 x d_D_2
 
 # CMB
 L4 : u_CMB = CMB
@@ -337,7 +337,7 @@ def objective2(x):
         print(f"L2 = {round(L2.item(),3)}")
         L = L + L2
     if '3' in losses:
-        L3 = compute_loss([u_217,u_353],coeffs_target_L3,std_L3,mask_L3,cross=True)
+        L3 = compute_loss(u_217-alpha*u_353,coeffs_target_L3,std_L3,mask_L3,cross=True)
         print(f"L3 = {round(L3.item(),3)}")
         L = L + L3
     if '4' in losses:
@@ -466,10 +466,10 @@ if __name__ == "__main__":
             print(f"L2 data computed in {time.time()-start_time_L2}")
         if '3' in losses:
             start_time_L3 = time.time()
-            bias_L3, std_L3 = compute_bias_std_dust(s_217_tilde, s_353_tilde, CMB_batch + n_217_batch, CMB_batch + n_353_batch)
-            coeffs_L3 = wph_op.apply([torch.from_numpy(d_217).to(device),torch.from_numpy(d_353).to(device)], norm=None, pbc=pbc, cross=True)
+            bias_L3, std_L3 = compute_bias_std_dust(s_217_tilde-alpha*s_353_tilde, s_217_tilde-alpha*s_353_tilde, (1-alpha)*CMB_batch + n_217_1_batch-alpha*n_353_1_batch, (1-alpha)*CMB_batch + n_217_2_batch-alpha*n_353_2_batch)
+            coeffs_L3 = wph_op.apply([torch.from_numpy(d_217_1-alpha*d_353_1).to(device),torch.from_numpy(d_217_2-alpha*d_353_2).to(device)], norm=None, pbc=pbc, cross=True)
             coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
-            mask_L3 = compute_mask([s_217_tilde,s_353_tilde], std_L3, cross=True)
+            mask_L3 = compute_mask(s_217_tilde-alpha*s_353_tilde, std_L3)
             print(f"L3 data computed in {time.time()-start_time_L3}")
         if '8' in losses:
             start_time_L8 = time.time()
