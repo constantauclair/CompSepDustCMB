@@ -337,7 +337,7 @@ def objective2(x):
         print(f"L2 = {round(L2.item(),3)}")
         L = L + L2
     if '3' in losses:
-        L3 = compute_loss(u_217-alpha*u_353,coeffs_target_L3,std_L3,mask_L3,cross=True)
+        L3 = compute_loss(u_217-alpha*u_353,coeffs_target_L3,std_L3,mask_L3)
         print(f"L3 = {round(L3.item(),3)}")
         L = L + L3
     if '4' in losses:
