@@ -56,7 +56,7 @@ optim_params2 = {"maxiter": iter_per_step2, "gtol": 1e-14, "ftol": 1e-14, "maxco
 device = 0 # GPU to use
 
 Mn = 100 # Number of noises per iteration
-batch_size = 10
+batch_size = 5
 n_batch = int(Mn/batch_size)
 
 #######
