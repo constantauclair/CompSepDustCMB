@@ -63,9 +63,9 @@ n_batch = int(Mn/batch_size)
 # DATA
 #######
 
-kSZ = np.load('data/kSZ_CMB_data/kSZ.npy') * fac
+kSZ = np.load('data/kSZ_CMB_data/kSZ.npy').astype(np.float32) * fac
 
-CMB_syn = np.load('data/kSZ_CMB_data/CMB_syn.npy')
+CMB_syn = np.load('data/kSZ_CMB_data/CMB_syn.npy').astype(np.float32)
 
 CMB = CMB_syn[conta]
 
@@ -165,8 +165,7 @@ def objective1(x):
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
     L1 = compute_loss_S11(u, coeffs_target, std) # Compute the loss
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
-    print("L1 = "+str(round(L1.item(),3)))
-    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+    print("L1 = "+str(round(L1.item(),3))+"(computed in "+str(round(time.time() - start_time,3))+"s)")
     print("")
     
     eval_cnt += 1
@@ -183,8 +182,7 @@ def objective2(x):
     L2 = compute_loss(torch.from_numpy(Mixture).to(device) - u, coeffs_target_L2, std_L2, mask_L2) # Compute the L2
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     L = L1 + L2
-    print("L = "+str(round(L.item(),3)))
-    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+    print("L = "+str(round(L.item(),3))+"(computed in "+str(round(time.time() - start_time,3))+"s)")
     print("L1 = "+str(round(L1.item(),3)))
     print("L2 = "+str(round(L2.item(),3)))
     print("")
