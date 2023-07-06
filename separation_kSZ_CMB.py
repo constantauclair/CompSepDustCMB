@@ -137,7 +137,7 @@ def compute_loss_S11(x,coeffs_target,std):
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
     loss_tot = torch.zeros(1)
-    loss = torch.sum(torch.abs( (compute_S11(st_calc,x) - coeffs_target)**2 ))
+    loss = torch.sum(torch.abs(( (compute_S11(st_calc,x) - coeffs_target)/std )**2))
     loss.backward(retain_graph=True)
     loss_tot += loss.detach().cpu()
     return loss_tot
@@ -147,7 +147,7 @@ def compute_loss(x,coeffs_target,std,mask):
     std = std.to(device)
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
-    loss = torch.sum(torch.abs( (compute_coeffs(st_calc,x,mask) - coeffs_target)**2 ))
+    loss = torch.sum(torch.abs(( (compute_coeffs(st_calc,x,mask) - coeffs_target)/std )**2))
     loss.backward(retain_graph=True)
     loss_tot += loss.detach().cpu()
     return loss_tot
