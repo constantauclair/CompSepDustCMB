@@ -107,8 +107,8 @@ def compute_bias_std_S11(u):
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         COEFFS[i*batch_size:(i+1)*batch_size] = compute_S11(st_calc, u + CMB_batch[i]) - coeffs_ref.type(dtype=ref_type)
-    bias = np.mean(COEFFS,axis=0)
-    std = np.std(COEFFS,axis=0)
+    bias = torch.mean(COEFFS,0)
+    std = torch.std(COEFFS,0)
     return bias.to(device), std.to(device)
 
 def compute_bias_std_L1(u,mask):
@@ -118,8 +118,8 @@ def compute_bias_std_L1(u,mask):
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         COEFFS[i*batch_size:(i+1)*batch_size] = compute_coeffs(st_calc,u + CMB_batch[i],mask) - coeffs_ref.type(dtype=ref_type)
-    bias = np.mean(COEFFS,axis=0)
-    std = np.std(COEFFS,axis=0)
+    bias = torch.mean(COEFFS,0)
+    std = torch.std(COEFFS,0)
     return bias.to(device), std.to(device)
 
 def compute_mean_std_L2(mask):
@@ -129,8 +129,8 @@ def compute_mean_std_L2(mask):
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         COEFFS[i*batch_size:(i+1)*batch_size] = compute_coeffs(st_calc,CMB_batch[i],mask)
-    mean = np.mean(COEFFS,axis=0)
-    std = np.std(COEFFS,axis=0)
+    mean = torch.mean(COEFFS,0)
+    std = torch.std(COEFFS,0)
     return mean.to(device), std.to(device)
 
 def compute_loss_S11(x,coeffs_target,std):
