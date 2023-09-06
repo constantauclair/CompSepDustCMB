@@ -59,7 +59,7 @@ losses = args.loss_list
 slope = args.fbm_slope
 conta = args.contamination
 
-file_name="separation_multifreq_halfmissions_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_conta="+str(conta)+".npy"
+file_name="separation_multifreq_halfmissions_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_conta="+str(conta)+"_tenthnoise.npy"
 
 if polar == 'Q':
     polar_index = 1
@@ -100,8 +100,8 @@ CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar
 CMB = CMB_syn[conta]
 
 # Noise
-n_217_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,:Mn]*np.sqrt(2)
-n_217_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,Mn:]*np.sqrt(2)
+n_217_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,:Mn]*np.sqrt(2) * 0.1
+n_217_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,Mn:]*np.sqrt(2) * 0.1
 
 n_217_syn = (n_217_1_syn + n_217_2_syn)/2
 
@@ -110,8 +110,8 @@ n_217_2 = n_217_2_syn[conta]
     
 n_217 = (n_217_1 + n_217_2)/2
 
-n_353_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,:Mn]*np.sqrt(2)
-n_353_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,Mn:]*np.sqrt(2)
+n_353_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,:Mn]*np.sqrt(2) * 0.1
+n_353_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,Mn:]*np.sqrt(2) * 0.1
 
 n_353_syn = (n_353_1_syn + n_353_2_syn)/2
 
