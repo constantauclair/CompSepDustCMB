@@ -59,7 +59,7 @@ polar = args.channel
 losses = args.loss_list
 slope = args.fbm_slope
 
-file_name="separation_multifreq_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_tenthnoise.npy"
+file_name="separation_multifreq_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_centhCMBnoise.npy"
 
 if polar == 'Q':
     polar_index = 1
@@ -92,15 +92,15 @@ Dust_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[p
 
 T_Dust = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[0]
     
-CMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index,0]
+CMB = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index,0] *0.01
     
-CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index]
+CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index] *0.01
 
-Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,0] *0.1
-Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,0] *0.1
+Noise_1 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,0] *0.01
+Noise_2 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,0] *0.01
     
-Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index] *0.1
-Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index] *0.1
+Noise_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index] *0.01
+Noise_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index] *0.01
 
 Mixture_1 = Dust_1 + CMB + Noise_1
 Mixture_2 = Dust_2 + CMB + Noise_2
