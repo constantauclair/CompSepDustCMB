@@ -11,7 +11,7 @@ reso = 2.35
 # Map size (in pixel)
 N = 512
 
-freq = 217
+freq = 143
 
 n_noise_maps = 100
 noise_folder = 'data/IQU_Planck_data/Planck_noise_fits/'
