@@ -14,7 +14,7 @@ N = 512
 freq = 143
 
 n_noise_maps = 100
-noise_folder = 'data/IQU_Planck_data/Planck_noise_fits/'
+noise_folder = '../data/IQU_Planck_data/Planck_noise_fits/'
 
 IQU_Noise_maps = np.zeros((3,n_noise_maps,N,N))
 for i in range(n_noise_maps):
@@ -27,4 +27,4 @@ for i in range(n_noise_maps):
     plt.close()
     print(i)
 
-np.save("data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_"+str(freq)+".npy",IQU_Noise_maps)
+np.save("../data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_"+str(freq)+".npy",IQU_Noise_maps)
