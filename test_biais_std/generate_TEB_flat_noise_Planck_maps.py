@@ -12,7 +12,7 @@ reso = 2.35
 N = 512
 nside = 1024
 
-freq = 143
+freq = 353
 
 n_noise_maps = 100
 noise_folder = '../data/IQU_Planck_data/Planck_noise_fits/'
