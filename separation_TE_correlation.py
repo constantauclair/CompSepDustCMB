@@ -65,22 +65,21 @@ n_batch = int(Mn/batch_size)
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_FM.npy')
-d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM1.npy')
-d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM2.npy')
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_FM.npy').astype(np.float32)
+d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM1.npy').astype(np.float32)
+d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM2.npy').astype(np.float32)
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy')[:Mn]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy')
-print(np.shape(noise_set))
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy').astype(np.float32)
 n_FM = np.random.shuffle(noise_set)[:Mn] + c
 n_HM1 = noise_set[:Mn] * np.sqrt(2) + c
 n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy')
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
 
 ###############################################################################
 # USEFUL FUNCTIONS
