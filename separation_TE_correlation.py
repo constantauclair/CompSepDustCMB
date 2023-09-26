@@ -74,6 +74,7 @@ c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy')[:Mn]
 
 # Noise
 noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy')
+print(np.shape(noise_set))
 n_FM = np.random.shuffle(noise_set)[:Mn] + c
 n_HM1 = noise_set[:Mn] * np.sqrt(2) + c
 n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
