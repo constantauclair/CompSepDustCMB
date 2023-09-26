@@ -14,7 +14,7 @@ nside = 2048
 
 freq = 353
 
-n_noise_maps = 100
+n_noise_maps = 50
 noise_folder = '../data/IQU_Planck_data/Planck_noise_fits/'
 
 TEB_Noise_maps = np.zeros((3,n_noise_maps,N,N))

@@ -18,24 +18,20 @@ It makes use of the WPH statistics (see Régaldo-Saint Blancard et al. 2022).
 For any question: constant.auclair@phys.ens.fr
 Another project has been led on the dust/CIB/noise separation on Herschel data (see Auclair et al. 2023).
 
+The quantities involved are d (the total map), u (the optimized dust map), n (the noise + CMB map)
+and T (the temperature map).
+
 Loss terms:
     
-# Dust
-L1 : (u_217 + CMB + n_217_1) x (u_217 + CMB + n_217_2) = d_217_1 x d_217_2
-L2 : (u_353 + CMB + n_353_1) x (u_353 + CMB + n_353_2) = d_353_1 x d_353_2
-L3 : (u_D + CMB + n_D_1) x (u_D + CMB + n_D_2) = d_D_1 x d_D_2
+# Dust 
+L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2      maybe L1bis : (u + n_FM) = d_FM ?
 
-# CMB
-L4 : u_CMB = CMB
-
-# Noise
-L5 : (d_217_1 - u_217 - u_CMB) x (d_217_2 - u_217 - u_CMB) = n_217_1 x n_217_2
-L6 : (d_353_1 - u_353 - u_CMB) x (d_353_2 - u_353 - u_CMB) = n_353_1 x n_353_2
-L7 : (d_217 - u_217 - u_CMB) x (d_353 - u_353 - u_CMB) = n_217 x n_353
+# Noise + CMB
+L2 : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2      maybe L2bis : (d_FM - u) = n_FM ?
 
 # T correlation
-L8 : (u_217 + CMB + n_217) x T_353 = d_217 x T_353
-L9 : (u_353 + CMB + n_353) x T_353 = d_353 x T_353
+L3 : (u + n_FM) x T = d_FM x T
+
 '''
 
 #######
