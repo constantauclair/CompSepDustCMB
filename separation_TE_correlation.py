@@ -7,8 +7,6 @@ import numpy as np
 import torch
 import scipy.optimize as opt
 import pywph as pw
-import scipy.stats as stats
-import argparse
 
 '''
 This component separation algorithm aims to separate the polarized E dust emission from the CMB 
@@ -27,16 +25,16 @@ Loss terms:
 L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2      maybe L1bis : (u + n_FM) = d_FM ?
 
 # Noise + CMB
-L2 : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2      maybe L2bis : (d_FM - u) = n_FM ?
+L2 : (d_FM - u) = n_FM                              maybe L2bis : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2 ?
 
 # T correlation
 L3 : (u + n_FM) x T = d_FM x T
 
 '''
 
-#######
+###############################################################################
 # INPUT PARAMETERS
-#######
+###############################################################################
 
 M, N = 512, 512
 J = 7
@@ -45,23 +43,7 @@ dn = 5
 pbc = True
 method = 'L-BFGS-B'
 
-parser = argparse.ArgumentParser()
-parser.add_argument('channel', type=str)
-parser.add_argument('loss_list', type=str)
-parser.add_argument('fbm_slope', type=int)
-parser.add_argument('contamination', type=int)
-args = parser.parse_args()
-polar = args.channel
-losses = args.loss_list
-slope = args.fbm_slope
-conta = args.contamination
-
-file_name="separation_multifreq_halfmissions_Chameleon-Musca_"+polar+"_L"+losses+"_fbm"+str(slope)+"_conta="+str(conta)+"_tenthnoise.npy"
-
-if polar == 'Q':
-    polar_index = 1
-if polar == 'U':
-    polar_index = 2
+file_name="separation_TE_correlation.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -78,106 +60,33 @@ Mn = 50 # Number of noises per iteration
 batch_size = 10
 n_batch = int(Mn/batch_size)
 
-alpha = 0.17556374501554545
-
-#######
+###############################################################################
 # DATA
-#######
+###############################################################################
 
 # Dust 
-s_217 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_217.npy')[polar_index]
-s_353 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[polar_index]
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_FM.npy')
+d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM1.npy')
+d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM2.npy')
 
-# T map
-T_353 = np.load('data/IQU_Planck_data/Chameleon-Musca data/Dust_IQU_353.npy')[0]
-    
 # CMB
-CMB_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/CMB_IQU.npy')[polar_index,:Mn]
-
-CMB = CMB_syn[conta]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy')[:Mn]
 
 # Noise
-n_217_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,:Mn]*np.sqrt(2) * 0.1
-n_217_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_217.npy')[polar_index,Mn:]*np.sqrt(2) * 0.1
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy')
+n_FM = np.random.shuffle(noise_set)[:Mn] + c
+n_HM1 = noise_set[:Mn] * np.sqrt(2) + c
+n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
 
-n_217_syn = (n_217_1_syn + n_217_2_syn)/2
-
-n_217_1 = n_217_1_syn[conta]
-n_217_2 = n_217_2_syn[conta]
+# T map
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy')
     
-n_217 = (n_217_1 + n_217_2)/2
-
-n_353_1_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,:Mn]*np.sqrt(2) * 0.1
-n_353_2_syn = np.load('data/IQU_Planck_data/Chameleon-Musca data/Noise_IQU_353.npy')[polar_index,Mn:]*np.sqrt(2) * 0.1
-
-n_353_syn = (n_353_1_syn + n_353_2_syn)/2
-
-n_353_1 = n_353_1_syn[conta]
-n_353_2 = n_353_2_syn[conta]
-
-n_353 = (n_353_1 + n_353_2)/2    
-
-# Mixture
-d_217_1 = s_217 + CMB + n_217_1
-d_217_2 = s_217 + CMB + n_217_2
-
-d_217 = (d_217_1 + d_217_2)/2
-
-d_353_1 = s_353 + CMB + n_353_1
-d_353_2 = s_353 + CMB + n_353_2
-
-d_353 = (d_353_1 + d_353_2)/2
-
-print("SNR 217 =",np.std(s_217)/np.std(CMB+n_217))
-print("SNR 353 =",np.std(s_353)/np.std(CMB+n_353))
+# CMB
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy')[:Mn]
 
 #######
 # USEFUL FUNCTIONS
 #######
-
-def power_spectrum(image):
-    assert image.shape[0] == image.shape[1]    
-    n = image.shape[0]
-    fourier = np.fft.fftn(image)
-    amplitude = (np.abs(fourier) ** 2).flatten()
-    kfreq = np.fft.fftfreq(n) * n
-    kfreq2D = np.meshgrid(kfreq, kfreq)
-    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2).flatten() ** (1 / 2)
-    kbins = np.arange(1 / 2, n // 2 + 1, 1)
-    kvals = (kbins[1:] + kbins[:-1]) / 2
-    bins, _, _ = stats.binned_statistic(knrm, amplitude, statistic = "mean", bins = kbins)
-    return kvals, bins
-
-def Gaussian(size, fwhm):
-    x = np.arange(0, size, 1, float)
-    y = x[:,np.newaxis]
-    x0 = y0 = size // 2
-    return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
-    
-def generate_fbm(noisy_data,noise,slope,frac=10):
-    N = np.shape(noisy_data)[-1]
-    k, noise_bins = power_spectrum(noise)
-    _, noisy_data_bins = power_spectrum(noisy_data)
-    estimated_data_bins = noisy_data_bins - noise_bins
-    clean_mask = estimated_data_bins > noise_bins / frac
-    k_crit = np.max(k[clean_mask])
-    gauss = Gaussian(N,k_crit)
-    noisy_data_FT = np.fft.fftshift(np.fft.fft2(noisy_data))
-    filtered_noisy_data_FT = noisy_data_FT * gauss
-    filtered_noisy_data = np.real(np.fft.ifft2(np.fft.ifftshift(filtered_noisy_data_FT)))
-    _, f_noisy_data_bins = power_spectrum(filtered_noisy_data)
-    kfreq = np.fft.fftfreq(N) * N
-    kfreq2D = np.meshgrid(kfreq, kfreq)
-    random_phases = np.exp(1j*np.angle(np.fft.fft2(np.random.random(size=np.shape(noisy_data)))))
-    knrm = (kfreq2D[0] ** 2 + kfreq2D[1] ** 2) ** (1 / 2)
-    fbm_FT = knrm**(slope/2) * random_phases
-    fbm_FT[0,0] = 1 * random_phases[0,0]
-    k_fbm = int(k_crit/2)
-    fbm_FT = fbm_FT / np.mean(np.abs(fbm_FT),where = knrm==k_fbm) * np.sqrt(f_noisy_data_bins[k_fbm])
-    igauss = 1-Gaussian(N,k_fbm)
-    f_fbm_FT = np.fft.ifftshift(np.fft.fftshift(fbm_FT)*igauss**4)
-    fbm = np.real(np.fft.ifft2(f_fbm_FT))
-    return filtered_noisy_data+fbm
 
 def create_batch(n, device):
     batch = torch.zeros([n_batch,batch_size,M,N])
@@ -185,15 +94,11 @@ def create_batch(n, device):
         batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-n_217_1_batch = create_batch(torch.from_numpy(n_217_1_syn).to(device), device=device)
-n_217_2_batch = create_batch(torch.from_numpy(n_217_2_syn).to(device), device=device)
-n_217_batch = create_batch(torch.from_numpy(n_217_syn).to(device), device=device)
-n_353_1_batch = create_batch(torch.from_numpy(n_353_1_syn).to(device), device=device)
-n_353_2_batch = create_batch(torch.from_numpy(n_353_2_syn).to(device), device=device)
-n_353_batch = create_batch(torch.from_numpy(n_353_syn).to(device), device=device)
-CMB_batch = create_batch(torch.from_numpy(CMB_syn).to(device), device=device)
+n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
+n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
+n_HM2_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
 
-def compute_bias_std_dust(u_A, u_B, conta_A, conta_B):
+def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
     coeffs_ref = wph_op.apply([u_A,u_B], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
@@ -212,26 +117,7 @@ def compute_bias_std_dust(u_A, u_B, conta_A, conta_B):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias.to(device), std.to(device)
 
-def compute_bias_std_CMB():
-    coeffs_ref = wph_op.apply(CMB, norm=None, pbc=pbc)
-    coeffs_number = coeffs_ref.size(-1)
-    ref_type = coeffs_ref.type()
-    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
-    for i in range(n_batch):
-        batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure(CMB_batch[i], pbc=pbc)
-        for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
-            del coeffs_chunk, indices
-        COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
-        del u, nb_chunks, batch_COEFFS
-        sys.stdout.flush() # Flush the standard output
-    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
-    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
-    return bias.to(device), std.to(device)
-
-def compute_bias_std_noise(conta_A, conta_B):
+def compute_bias_std_L2(conta_A, conta_B):
     coeffs_ref = wph_op.apply([conta_A[0,0],conta_B[0,0]], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
@@ -250,14 +136,14 @@ def compute_bias_std_noise(conta_A, conta_B):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias.to(device), std.to(device)
 
-def compute_bias_std_T(u_A, conta_A):
-    coeffs_ref = wph_op.apply([u_A,torch.from_numpy(T_353).to(device)], norm=None, pbc=pbc, cross=True)
+def compute_bias_std_L3(u_A, conta_A):
+    coeffs_ref = wph_op.apply([u_A,torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(T_353).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
+        u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(T).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
@@ -298,18 +184,12 @@ def objective1(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
-    u = x.reshape((2, M, N)) # Reshape x
+    u = x.reshape((M, N)) # Reshape x
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    u_217 = u[0]
-    u_353 = u[1]
-    L1 = compute_loss(u_217,coeffs_target_L1,std_L1,mask_L1,cross=False) # Compute L1
-    L2 = compute_loss(u_353,coeffs_target_L2,std_L2,mask_L2,cross=False) # Compute L2
+    L = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False) # Compute the loss
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
-    L = L1 + L2
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
-    print("L1 = "+str(round(L1.item(),3)))
-    print("L2 = "+str(round(L2.item(),3)))
     print("")
     eval_cnt += 1
     return L.item(), u_grad.ravel()
