@@ -226,8 +226,7 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization (only S11)...")
     eval_cnt = 0
-    Initial_condition = torch.from_numpy(d_FM).to(device)
-    s_tilde0 = Initial_condition
+    s_tilde0 = d_FM
     for i in range(n_step1):
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
@@ -249,14 +248,13 @@ if __name__ == "__main__":
     # Initializing operator
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     wph_op.clear_normalization()
-    # Creating new set of variables
-    Initial_condition = s_tilde0
+    # Creating new variable
+    s_tilde = s_tilde0
     # Computation of the coeffs, std and mask
     start_time_L2 = time.time()
     coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
     mask_L2 = compute_mask(torch.from_numpy(n_FM_batch[0,0]).to(device),std_L2)
     print(f"L2 data computed in {time.time()-start_time_L2}")
-    s_tilde = Initial_condition
     for i in range(n_step2):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
