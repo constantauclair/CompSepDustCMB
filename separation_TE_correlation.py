@@ -80,13 +80,10 @@ n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
 
 # T map
 T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy')
-    
-# CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy')[:Mn]
 
-#######
+###############################################################################
 # USEFUL FUNCTIONS
-#######
+###############################################################################
 
 def create_batch(n, device):
     batch = torch.zeros([n_batch,batch_size,M,N])
@@ -117,16 +114,16 @@ def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias.to(device), std.to(device)
 
-def compute_bias_std_L2(conta_A, conta_B):
-    coeffs_ref = wph_op.apply([conta_A[0,0],conta_B[0,0]], norm=None, pbc=pbc, cross=True)
+def compute_bias_std_L2(conta_A):
+    coeffs_ref = wph_op.apply(conta_A[0,0], norm=None, pbc=pbc)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure([conta_A[i],conta_B[i]], pbc=pbc, cross=True)
+        u, nb_chunks = wph_op.preconfigure(conta_A[i], pbc=pbc)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
@@ -176,9 +173,9 @@ def compute_loss(x,coeffs_target,std,mask,cross):
         del coeffs_chunk, indices, loss
     return loss_tot
 
-#######
+###############################################################################
 # OBJECTIVE FUNCTIONS
-#######
+###############################################################################
 
 def objective1(x):
     global eval_cnt
@@ -198,62 +195,28 @@ def objective2(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
-    u = x.reshape((3, M, N)) # Reshape x
+    u = x.reshape((M, N)) # Reshape x
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    u_217 = u[0]
-    u_353 = u[1]
-    u_CMB = u[2]
-    L = 0 # Define total loss 
-    # Compute the losses
-    if '1' in losses:
-        L1 = compute_loss(u_217,coeffs_target_L1,std_L1,mask_L1,cross=False)
-        print(f"L1 = {round(L1.item(),3)}")
-        L = L + L1
-    if '2' in losses:
-        L2 = compute_loss(u_353,coeffs_target_L2,std_L2,mask_L2,cross=False)
-        print(f"L2 = {round(L2.item(),3)}")
-        L = L + L2
-    if '3' in losses:
-        L3 = compute_loss(u_217-alpha*u_353,coeffs_target_L3,std_L3,mask_L3,cross=False)
-        print(f"L3 = {round(L3.item(),3)}")
-        L = L + L3
-    if '4' in losses:
-        L4 = compute_loss(u_CMB,coeffs_target_L4,std_L4,mask_L4,cross=False)
-        print(f"L4 = {round(L4.item(),3)}")
-        L = L + L4
-    if '5' in losses:
-        L5 = compute_loss([torch.from_numpy(d_217_1).to(device) - u_217 - u_CMB,torch.from_numpy(d_217_2).to(device) - u_217 - u_CMB],coeffs_target_L5,std_L5,mask_L5,cross=True)
-        print(f"L5 = {round(L5.item(),3)}")
-        L = L + L5
-    if '6' in losses:
-        L6 = compute_loss([torch.from_numpy(d_353_1).to(device) - u_353 - u_CMB,torch.from_numpy(d_353_2).to(device) - u_353 - u_CMB],coeffs_target_L6,std_L6,mask_L6,cross=True)
-        print(f"L6 = {round(L6.item(),3)}")
-        L = L + L6
-    if '7' in losses:
-        L7 = compute_loss([torch.from_numpy(d_217).to(device) - u_217 - u_CMB,torch.from_numpy(d_353).to(device) - u_353 - u_CMB],coeffs_target_L7,std_L7,mask_L7,cross=True)
-        print(f"L7 = {round(L7.item(),3)}")
-        L = L + L7
-    if '8' in losses:
-        L8 = compute_loss([u_217,torch.from_numpy(T_353).to(device)],coeffs_target_L8,std_L8,mask_L8,cross=True)
-        print(f"L8 = {round(L8.item(),3)}")
-        L = L + L8
-    if '9' in losses:
-        L9 = compute_loss([u_353,torch.from_numpy(T_353).to(device)],coeffs_target_L9,std_L9,mask_L9,cross=True)
-        print(f"L9 = {round(L9.item(),3)}")
-        L = L + L9
+    L1 = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False)
+    print(f"L1 = {round(L1.item(),3)}")
+    L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
+    print(f"L2 = {round(L2.item(),3)}")
+    L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
+    print(f"L3 = {round(L3.item(),3)}")
+    L = L1 + L2 + L3 # Define total loss 
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print(f"L = {round(L.item(),3)} (computed in {round(time.time() - start_time,3)} s)")
     print("")
     eval_cnt += 1
     return L.item(), u_grad.ravel()
 
-#######
+###############################################################################
 # MINIMIZATION
-#######
+###############################################################################
 
 if __name__ == "__main__":
     total_start_time = time.time()
-    print("Starting component separation on "+polar+" with L"+losses+" and a FBM of slope "+str(slope)+" as initial condition.")
+    print("Starting component separation...")
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
@@ -263,28 +226,21 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization (only S11)...")
     eval_cnt = 0
-    Initial_condition = np.array([generate_fbm(d_217,n_217+CMB,slope),generate_fbm(d_353,n_353+CMB,slope)])
+    Initial_condition = torch.from_numpy(d_FM).to(device)
     s_tilde0 = Initial_condition
     for i in range(n_step1):
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
-        s_217_tilde0 = s_tilde0[0]
-        s_353_tilde0 = s_tilde0[1]
         # L1
-        bias_L1, std_L1 = compute_bias_std_dust(s_217_tilde0, s_217_tilde0, CMB_batch + n_217_1_batch, CMB_batch + n_217_2_batch)
-        coeffs_L1 = wph_op.apply([torch.from_numpy(d_217_1).to(device),torch.from_numpy(d_217_2).to(device)], norm=None, pbc=pbc, cross=True)
+        bias_L1, std_L1 = compute_bias_std_L1(s_tilde0, s_tilde0, n_HM1_batch, n_HM2_batch)
+        coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
-        mask_L1 = compute_mask(s_217_tilde0, std_L1)
-        # L2
-        bias_L2, std_L2 = compute_bias_std_dust(s_353_tilde0, s_353_tilde0, CMB_batch + n_353_1_batch, CMB_batch + n_353_2_batch)
-        coeffs_L2 = wph_op.apply([torch.from_numpy(d_353_1).to(device),torch.from_numpy(d_353_2).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
-        mask_L2 = compute_mask(s_353_tilde0, std_L2)
+        mask_L1 = compute_mask(s_tilde0, std_L1)
         # Minimization
         result = opt.minimize(objective1, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, s_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
-        s_tilde0 = s_tilde0.reshape((2, M, N)).astype(np.float32)
+        s_tilde0 = s_tilde0.reshape((M, N)).astype(np.float32)
         print("Era "+str(i+1)+" done !")
         
     ## Second minimization
@@ -294,83 +250,37 @@ if __name__ == "__main__":
     wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
     wph_op.clear_normalization()
     # Creating new set of variables
-    Initial_condition = np.array([s_tilde0[0],s_tilde0[1],np.random.normal(np.mean(CMB),np.std(CMB),size=(M,N))])
+    Initial_condition = s_tilde0
     # Computation of the coeffs, std and mask
-    loss_data_mean_start_time = time.time()
-    if '4' in losses:
-        start_time_L4 = time.time()
-        coeffs_target_L4, std_L4 = compute_bias_std_CMB()
-        mask_L4 = compute_mask(torch.from_numpy(CMB).to(device),std_L4)
-        print(f"L4 data computed in {time.time()-start_time_L4}")
-    if '5' in losses:
-        start_time_L5 = time.time()
-        coeffs_target_L5, std_L5 = compute_bias_std_noise(n_217_1_batch,n_217_2_batch)
-        mask_L5 = compute_mask([torch.from_numpy(n_217_1).to(device),torch.from_numpy(n_217_2).to(device)],std_L5,cross=True)
-        print(f"L5 data computed in {time.time()-start_time_L5}")
-    if '6' in losses:
-        start_time_L6 = time.time()
-        coeffs_target_L6, std_L6 = compute_bias_std_noise(n_353_1_batch,n_353_2_batch)
-        mask_L6 = compute_mask([torch.from_numpy(n_353_1).to(device),torch.from_numpy(n_353_2).to(device)],std_L6,cross=True)
-        print(f"L6 data computed in {time.time()-start_time_L6}")
-    if '7' in losses:
-        start_time_L7 = time.time()
-        coeffs_target_L7, std_L7 = compute_bias_std_noise(n_217_batch,n_353_batch)
-        mask_L7 = compute_mask([torch.from_numpy(n_217).to(device),torch.from_numpy(n_353).to(device)],std_L7,cross=True)
-        print(f"L7 data computed in {time.time()-start_time_L7}")
-    print(f"Loss data computed in {time.time() - loss_data_mean_start_time}")
+    start_time_L2 = time.time()
+    coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
+    mask_L2 = compute_mask(torch.from_numpy(n_FM_batch[0,0]).to(device),std_L2)
+    print(f"L2 data computed in {time.time()-start_time_L2}")
     s_tilde = Initial_condition
     for i in range(n_step2):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
-        s_217_tilde = s_tilde[0]
-        s_353_tilde = s_tilde[1]
-        CMB_tilde = s_tilde[2]
         # Bias, coeffs target and mask computation
-        loss_data_start_time = time.time()
-        if '1' in losses:
-            start_time_L1 = time.time()
-            bias_L1, std_L1 = compute_bias_std_dust(s_217_tilde, s_217_tilde, CMB_batch + n_217_1_batch, CMB_batch + n_217_2_batch)
-            coeffs_L1 = wph_op.apply([torch.from_numpy(d_217_1).to(device),torch.from_numpy(d_217_2).to(device)], norm=None, pbc=pbc, cross=True)
-            coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
-            mask_L1 = compute_mask(s_217_tilde, std_L1)
-            print(f"L1 data computed in {time.time()-start_time_L1}")
-        if '2' in losses:
-            start_time_L2 = time.time()
-            bias_L2, std_L2 = compute_bias_std_dust(s_353_tilde, s_353_tilde, CMB_batch + n_353_1_batch, CMB_batch + n_353_2_batch)
-            coeffs_L2 = wph_op.apply([torch.from_numpy(d_353_1).to(device),torch.from_numpy(d_353_2).to(device)], norm=None, pbc=pbc, cross=True)
-            coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
-            mask_L2 = compute_mask(s_353_tilde, std_L2)
-            print(f"L2 data computed in {time.time()-start_time_L2}")
-        if '3' in losses:
-            start_time_L3 = time.time()
-            bias_L3, std_L3 = compute_bias_std_dust(s_217_tilde-alpha*s_353_tilde, s_217_tilde-alpha*s_353_tilde, (1-alpha)*CMB_batch + n_217_1_batch-alpha*n_353_1_batch, (1-alpha)*CMB_batch + n_217_2_batch-alpha*n_353_2_batch)
-            coeffs_L3 = wph_op.apply([torch.from_numpy(d_217_1-alpha*d_353_1).to(device),torch.from_numpy(d_217_2-alpha*d_353_2).to(device)], norm=None, pbc=pbc, cross=True)
-            coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
-            mask_L3 = compute_mask(s_217_tilde-alpha*s_353_tilde, std_L3)
-            print(f"L3 data computed in {time.time()-start_time_L3}")
-        if '8' in losses:
-            start_time_L8 = time.time()
-            bias_L8, std_L8 = compute_bias_std_T(s_217_tilde, CMB_batch + n_217_batch)
-            coeffs_L8 = wph_op.apply([torch.from_numpy(d_217).to(device),torch.from_numpy(T_353).to(device)], norm=None, pbc=pbc, cross=True)
-            coeffs_target_L8 = torch.cat((torch.unsqueeze(torch.real(coeffs_L8) - bias_L8[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L8) - bias_L8[1],dim=0)))
-            mask_L8 = compute_mask([s_217_tilde,torch.from_numpy(T_353).to(device)], std_L8, cross=True)
-            print(f"L8 data computed in {time.time()-start_time_L8}")
-        if '9' in losses:
-            start_time_L9 = time.time()
-            bias_L9, std_L9 = compute_bias_std_T(s_353_tilde, CMB_batch + n_353_batch)
-            coeffs_L9 = wph_op.apply([torch.from_numpy(d_353).to(device),torch.from_numpy(T_353).to(device)], norm=None, pbc=pbc, cross=True)
-            coeffs_target_L9 = torch.cat((torch.unsqueeze(torch.real(coeffs_L9) - bias_L9[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L9) - bias_L9[1],dim=0)))
-            mask_L9 = compute_mask([s_353_tilde,torch.from_numpy(T_353).to(device)], std_L9, cross=True)
-            print(f"L9 data computed in {time.time()-start_time_L9}")
-        print(f"Loss data for era {str(i+1)} computed in {time.time() - loss_data_start_time}")
+        start_time_L1 = time.time()
+        bias_L1, std_L1 = compute_bias_std_L1(s_tilde, s_tilde, n_HM1_batch, n_HM2_batch)
+        coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
+        mask_L1 = compute_mask(s_tilde, std_L1)
+        print(f"L1 data computed in {time.time()-start_time_L1}")
+        start_time_L3 = time.time()
+        bias_L3, std_L3 = compute_bias_std_L3(s_tilde, n_FM_batch)
+        coeffs_L3 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
+        coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
+        mask_L3 = compute_mask([s_tilde,torch.from_numpy(T).to(device)], std_L3, cross=True)
+        print(f"L3 data computed in {time.time()-start_time_L3}")
         # Minimization
         result = opt.minimize(objective2, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
-        s_tilde = s_tilde.reshape((3, M, N)).astype(np.float32)
+        s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
         print("Era "+str(i+1)+" done !")
         
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     if file_name is not None:
-        np.save(file_name, [np.array([d_217,d_353]),np.array([s_217,s_353]),np.array([CMB,CMB]),np.array([T_353,T_353]),np.array([n_217,n_353]),np.array([s_tilde[0],s_tilde[1]]),np.array([s_tilde[2],s_tilde[2]]),np.array([d_217-s_tilde[0]-s_tilde[2],d_353-s_tilde[1]-s_tilde[2]])])
+        np.save(file_name, np.array([T,d_FM,s_tilde,d_FM-s_tilde]))

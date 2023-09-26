@@ -14,12 +14,12 @@ nside = 2048
 
 freq = 353
 
-n_noise_maps = 50
+n_noise_maps = 100
 noise_folder = '../data/IQU_Planck_data/Planck_noise_fits/'
 
 TEB_Noise_maps = np.zeros((3,n_noise_maps,N,N))
 for i in range(n_noise_maps):
-    noise_map = fits.open(noise_folder+'product-action?SIMULATED_MAP.FILE_ID=ffp10_noise_'+str(freq)+'_full_map_mc_000'+str(1050+i)[-2:]+'.fits')
+    noise_map = fits.open(noise_folder+'product-action?SIMULATED_MAP.FILE_ID=ffp10_noise_'+str(freq)+'_full_map_mc_000'+str(1000+i)[-2:]+'.fits')
     IQU_map = [hp.read_map(noise_map,field=0),hp.read_map(noise_map,field=1),hp.read_map(noise_map,field=2)]
     print("Map loaded !")
     TEB_alm = hp.map2alm(IQU_map)
