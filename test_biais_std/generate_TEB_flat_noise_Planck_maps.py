@@ -10,11 +10,11 @@ latitude = -16.77
 reso = 2.35
 # Map size (in pixel)
 N = 512
-nside = 1024
+nside = 2048
 
 freq = 353
 
-n_noise_maps = 100
+n_noise_maps = 1
 noise_folder = '../data/IQU_Planck_data/Planck_noise_fits/'
 
 TEB_Noise_maps = np.zeros((3,n_noise_maps,N,N))
@@ -35,4 +35,5 @@ for i in range(n_noise_maps):
     plt.close()
     print(i,"done !")
 
-np.save("../data/IQU_Planck_data/TE correlation data/Noise_TEB_"+str(freq)+".npy",TEB_Noise_maps)
+np.save("../data/IQU_Planck_data/TE correlation data/1_Noise_TEB_"+str(freq)+".npy",TEB_Noise_maps)
+#np.save("../data/IQU_Planck_data/TE correlation data/Noise_TEB_"+str(freq)+".npy",TEB_Noise_maps)
