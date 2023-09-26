@@ -220,7 +220,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
+    wph_op.load_model(["S11"],dn=0)
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     # Computation of the coeffs, std and mask
     start_time_L2 = time.time()
     coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
-    mask_L2 = compute_mask(torch.from_numpy(n_FM_batch[0,0]).to(device),std_L2)
+    mask_L2 = compute_mask(n_FM_batch[0,0],std_L2)
     print(f"L2 data computed in {time.time()-start_time_L2}")
     for i in range(n_step2):
         print("Starting era "+str(i+1)+"...")
