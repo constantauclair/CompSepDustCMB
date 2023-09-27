@@ -40,10 +40,10 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 5
-pbc = True
+pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation.npy"
+file_name="separation_TE_correlation_pbc=False.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
