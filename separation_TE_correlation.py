@@ -22,7 +22,7 @@ and T (the temperature map).
 Loss terms:
     
 # Dust 
-L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2      maybe L1bis : (u + n_FM) = d_FM ?
+L1 : (u + n_FM) = d_FM                              maybe L1bis : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2 ?
 
 # Noise + CMB
 L2 : (d_FM - u) = n_FM                              maybe L2bis : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2 ?
@@ -95,16 +95,35 @@ n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
 n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
 n_HM2_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
 
-def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
-    coeffs_ref = wph_op.apply([u_A,u_B], norm=None, pbc=pbc, cross=True)
+# def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
+#     coeffs_ref = wph_op.apply([u_A,u_B], norm=None, pbc=pbc, cross=True)
+#     coeffs_number = coeffs_ref.size(-1)
+#     ref_type = coeffs_ref.type()
+#     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
+#     for i in range(n_batch):
+#         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
+#         u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],u_B + conta_B[i]], pbc=pbc, cross=True)
+#         for j in range(nb_chunks):
+#             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+#             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
+#             del coeffs_chunk, indices
+#         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
+#         del u, nb_chunks, batch_COEFFS
+#         sys.stdout.flush() # Flush the standard output
+#     bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+#     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+#     return bias.to(device), std.to(device)
+
+def compute_bias_std_L1(u_A, conta_A):
+    coeffs_ref = wph_op.apply(u_A, norm=None, pbc=pbc)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],u_B + conta_B[i]], pbc=pbc, cross=True)
+        u, nb_chunks = wph_op.preconfigure(u_A + conta_A[i], pbc=pbc)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
@@ -231,8 +250,12 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
         # L1
-        bias_L1, std_L1 = compute_bias_std_L1(s_tilde0, s_tilde0, n_HM1_batch, n_HM2_batch)
-        coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        # bias_L1, std_L1 = compute_bias_std_L1(s_tilde0, s_tilde0, n_HM1_batch, n_HM2_batch)
+        # coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        # coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
+        # mask_L1 = compute_mask(s_tilde0, std_L1)
+        bias_L1, std_L1 = compute_bias_std_L1(s_tilde0, n_FM_batch)
+        coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         mask_L1 = compute_mask(s_tilde0, std_L1)
         # Minimization
@@ -260,8 +283,12 @@ if __name__ == "__main__":
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         # Bias, coeffs target and mask computation
         start_time_L1 = time.time()
-        bias_L1, std_L1 = compute_bias_std_L1(s_tilde, s_tilde, n_HM1_batch, n_HM2_batch)
-        coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        # bias_L1, std_L1 = compute_bias_std_L1(s_tilde, s_tilde, n_HM1_batch, n_HM2_batch)
+        # coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        # coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
+        # mask_L1 = compute_mask(s_tilde, std_L1)
+        bias_L1, std_L1 = compute_bias_std_L1(s_tilde, n_FM_batch)
+        coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         mask_L1 = compute_mask(s_tilde, std_L1)
         print(f"L1 data computed in {time.time()-start_time_L1}")
