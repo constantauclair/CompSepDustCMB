@@ -220,7 +220,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"],dn=0)
+    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
