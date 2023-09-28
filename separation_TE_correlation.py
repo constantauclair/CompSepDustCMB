@@ -43,7 +43,7 @@ dn = 2
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_pbc=False.npy"
+file_name="separation_TE_correlation_pbc=False_noL3.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -220,9 +220,9 @@ def objective2(x):
     print(f"L1 = {round(L1.item(),3)}")
     L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
     print(f"L2 = {round(L2.item(),3)}")
-    L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
-    print(f"L3 = {round(L3.item(),3)}")
-    L = L1 + L2 + L3 # Define total loss 
+    # L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
+    # print(f"L3 = {round(L3.item(),3)}")
+    L = L1 + L2 #+ L3 # Define total loss 
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print(f"L = {round(L.item(),3)} (computed in {round(time.time() - start_time,3)} s)")
     print("")
@@ -292,12 +292,12 @@ if __name__ == "__main__":
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         mask_L1 = compute_mask(s_tilde, std_L1)
         print(f"L1 data computed in {time.time()-start_time_L1}")
-        start_time_L3 = time.time()
-        bias_L3, std_L3 = compute_bias_std_L3(s_tilde, n_FM_batch)
-        coeffs_L3 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
-        mask_L3 = compute_mask([s_tilde,torch.from_numpy(T).to(device)], std_L3, cross=True)
-        print(f"L3 data computed in {time.time()-start_time_L3}")
+        # start_time_L3 = time.time()
+        # bias_L3, std_L3 = compute_bias_std_L3(s_tilde, n_FM_batch)
+        # coeffs_L3 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
+        # coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
+        # mask_L3 = compute_mask([s_tilde,torch.from_numpy(T).to(device)], std_L3, cross=True)
+        # print(f"L3 data computed in {time.time()-start_time_L3}")
         # Minimization
         result = opt.minimize(objective2, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params2)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
