@@ -220,7 +220,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
+    wph_op.load_model(["S11"],dn=0)
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
@@ -232,9 +232,14 @@ if __name__ == "__main__":
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
         # L1
         bias_L1, std_L1 = compute_bias_std_L1(s_tilde0, s_tilde0, n_HM1_batch, n_HM2_batch)
+        print("Bias =",bias_L1)
+        print("Std =",std_L1)
         coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        print("Coeffs =",coeffs_L1)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
+        print("Coeffs target =",coeffs_target_L1)
         mask_L1 = compute_mask(s_tilde0, std_L1)
+        print("Mask =",mask_L1)
         # Minimization
         result = opt.minimize(objective1, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, s_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
