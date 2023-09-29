@@ -93,7 +93,7 @@ def create_batch(n, device):
 
 n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
 n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
-n_HM2_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
+n_HM2_batch = create_batch(torch.from_numpy(n_HM2).to(device), device=device)
 
 def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
     coeffs_ref = wph_op.apply([u_A,u_B], norm=None, pbc=pbc, cross=True)
