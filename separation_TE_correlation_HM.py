@@ -154,8 +154,9 @@ def compute_bias_std_L3(u_A, conta_A):
 
 def compute_mask(x,std,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    mask_real = torch.logical_and(torch.real(coeffs).to(device) > 1e-7, std[0].to(device) > 0)
-    mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > 1e-7, std[1].to(device) > 0)
+    thresh = 1e-5
+    mask_real = torch.logical_and(torch.real(coeffs).to(device) > thresh, std[0].to(device) > 0)
+    mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > thresh, std[1].to(device) > 0)
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
