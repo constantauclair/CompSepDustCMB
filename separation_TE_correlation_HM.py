@@ -39,11 +39,11 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 2
+dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_crossdn0.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=5.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -198,12 +198,10 @@ def objective2(x):
     start_time = time.time()
     u = x.reshape((M, N)) # Reshape x
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"],dn=dn)
     L1 = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False)
     print(f"L1 = {round(L1.item(),3)}")
     L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
     print(f"L2 = {round(L2.item(),3)}")
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"],dn=0)
     L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
     print(f"L3 = {round(L3.item(),3)}")
     L = L1 + L2 + L3 # Define total loss 
@@ -223,7 +221,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"],dn=0)
+    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
@@ -263,14 +261,12 @@ if __name__ == "__main__":
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         # Bias, coeffs target and mask computation
         start_time_L1 = time.time()
-        wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"],dn=dn)
         bias_L1, std_L1 = compute_bias_std_L1(s_tilde, s_tilde, n_HM1_batch, n_HM2_batch)
         coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         mask_L1 = compute_mask(s_tilde, std_L1)
         print(f"L1 data computed in {time.time()-start_time_L1}")
         start_time_L3 = time.time()
-        wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"],dn=0)
         bias_L3, std_L3 = compute_bias_std_L3(s_tilde, n_FM_batch)
         coeffs_L3 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3) - bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3) - bias_L3[1],dim=0)))
