@@ -132,7 +132,7 @@ def compute_bias_std_L2(u_A, conta_A, bias_L1, std_L1):
     bias2 = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
     std2 = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     bias = bias_L1 - bias2
-    std = np.sqrt(std_L1**2 + std2**2)
+    std = torch.sqrt(std_L1**2 + std2**2)
     return bias.to(device), std.to(device)
 
 def compute_bias_std_L3(u_A, conta_A):
