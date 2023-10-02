@@ -264,7 +264,7 @@ if __name__ == "__main__":
         mask_L1 = compute_mask(s_tilde, std_L1)
         print(f"L1 data computed in {time.time()-start_time_L1}")
         start_time_L2 = time.time()
-        bias_L2, std_L2 = compute_bias_std_L1(s_tilde, n_FM_batch, bias_L1, std_L1)
+        bias_L2, std_L2 = compute_bias_std_L2(s_tilde, n_FM_batch, bias_L1, std_L1)
         coeffs_L2 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
         mask_L2 = compute_mask([s_tilde,torch.from_numpy(d_FM).to(device)], std_L2, cross=True)
