@@ -25,7 +25,7 @@ Loss terms:
 L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 
 # Noise + CMB
-L2 : (d_FM - u) = n_FM                              maybe L2bis : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2 ?
+L2 : d_FM x u = (u + n_FM) x u     
 
 # T correlation
 L3 : (u + n_FM) x T = d_FM x T
@@ -43,7 +43,7 @@ dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=5.npy"
+file_name="separation_TE_correlation_HM_JMD.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -114,23 +114,25 @@ def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return bias.to(device), std.to(device)
 
-def compute_bias_std_L2(conta_A):
-    coeffs_ref = wph_op.apply(conta_A[0,0], norm=None, pbc=pbc)
+def compute_bias_std_L2(u_A, conta_A, bias_L1, std_L1):
+    coeffs_ref = wph_op.apply([u_A,u_A], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure(conta_A[i], pbc=pbc)
+        u, nb_chunks = wph_op.preconfigure([u_A.expand(conta_A[i].size()), u_A + conta_A[i]], pbc=pbc, cross=True)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
         del u, nb_chunks, batch_COEFFS
         sys.stdout.flush() # Flush the standard output
-    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
-    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    bias2 = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+    std2 = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    bias = bias_L1 - bias2
+    std = np.sqrt(std_L1**2 + std2**2)
     return bias.to(device), std.to(device)
 
 def compute_bias_std_L3(u_A, conta_A):
@@ -200,7 +202,7 @@ def objective2(x):
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
     L1 = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False)
     print(f"L1 = {round(L1.item(),3)}")
-    L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
+    L2 = compute_loss([u,torch.from_numpy(d_FM).to(device)],coeffs_target_L2,std_L2,mask_L2,cross=True)
     print(f"L2 = {round(L2.item(),3)}")
     L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
     print(f"L3 = {round(L3.item(),3)}")
@@ -251,11 +253,6 @@ if __name__ == "__main__":
     wph_op.clear_normalization()
     # Creating new variable
     s_tilde = s_tilde0
-    # Computation of the coeffs, std and mask
-    start_time_L2 = time.time()
-    coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
-    mask_L2 = compute_mask(n_FM_batch[0,0],std_L2)
-    print(f"L2 data computed in {time.time()-start_time_L2}")
     for i in range(n_step2):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
@@ -266,6 +263,12 @@ if __name__ == "__main__":
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         mask_L1 = compute_mask(s_tilde, std_L1)
         print(f"L1 data computed in {time.time()-start_time_L1}")
+        start_time_L2 = time.time()
+        bias_L2, std_L2 = compute_bias_std_L1(s_tilde, n_FM_batch, bias_L1, std_L1)
+        coeffs_L2 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
+        coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2) - bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2) - bias_L2[1],dim=0)))
+        mask_L2 = compute_mask([s_tilde,torch.from_numpy(d_FM).to(device)], std_L2, cross=True)
+        print(f"L2 data computed in {time.time()-start_time_L2}")
         start_time_L3 = time.time()
         bias_L3, std_L3 = compute_bias_std_L3(s_tilde, n_FM_batch)
         coeffs_L3 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
