@@ -43,7 +43,7 @@ dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=5.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=5_noL2.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -200,11 +200,11 @@ def objective2(x):
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
     L1 = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False)
     print(f"L1 = {round(L1.item(),3)}")
-    L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
-    print(f"L2 = {round(L2.item(),3)}")
+    #L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
+    #print(f"L2 = {round(L2.item(),3)}")
     L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
     print(f"L3 = {round(L3.item(),3)}")
-    L = L1 + L2 + L3 # Define total loss 
+    L = L1 + L3 #L = L1 + L2 + L3 # Define total loss 
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print(f"L = {round(L.item(),3)} (computed in {round(time.time() - start_time,3)} s)")
     print("")
