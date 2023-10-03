@@ -39,11 +39,11 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 5
+dn = 10
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=5.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=10.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
