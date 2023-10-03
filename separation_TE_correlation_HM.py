@@ -39,7 +39,7 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 10
+dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
