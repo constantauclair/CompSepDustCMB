@@ -39,11 +39,11 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 5
+dn = 8
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=10.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=8.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -282,4 +282,4 @@ if __name__ == "__main__":
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     if file_name is not None:
-        np.save(file_name, np.array([T,d_FM,s_tilde,d_FM-s_tilde]))
+        np.save(file_name, np.array([T,d_FM,s_tilde,d_FM-s_tilde,s_tilde0]))
