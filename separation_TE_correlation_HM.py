@@ -39,11 +39,11 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 5
+dn = 2
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=5_with_s_tilde0.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=2_u0=gwn.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization (only S11)...")
     eval_cnt = 0
-    s_tilde0 = d_FM
+    s_tilde0 = np.random.normal(0,1,size=np.shape(d_FM)) #d_FM
     for i in range(n_step1):
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
