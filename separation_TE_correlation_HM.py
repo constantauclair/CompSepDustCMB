@@ -227,7 +227,7 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization (only S11)...")
     eval_cnt = 0
-    s_tilde0 = np.random.normal(0,1,size=np.shape(d_FM)) #d_FM
+    s_tilde0 = T / (6*1e4) #np.random.normal(0,1,size=np.shape(d_FM)) #d_FM
     for i in range(n_step1):
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
