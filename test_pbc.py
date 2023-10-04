@@ -179,7 +179,9 @@ if __name__ == "__main__":
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
         s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
-        print("Loss =", (wph_op.apply([torch.from_numpy(s_tilde).to(device),torch.from_numpy(s_tilde).to(device)], norm=None, pbc=pbc, cross=True) - coeffs_target_L1)/std_L1 )
+        coeffs = wph_op.apply([torch.from_numpy(s_tilde).to(device),torch.from_numpy(s_tilde).to(device)], norm=None, pbc=pbc, cross=True)
+        print("Loss real =", (torch.real(coeffs)[mask_L1[0]] - coeffs_target_L1[0][mask_L1[0]]) / std_L1[0][mask_L1[0]] )
+        print("Loss imag =", (torch.imag(coeffs)[mask_L1[1]] - coeffs_target_L1[1][mask_L1[1]]) / std_L1[1][mask_L1[1]] )
         print("Era "+str(i+1)+" done !")
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
