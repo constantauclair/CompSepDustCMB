@@ -37,14 +37,14 @@ dn = 2
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="test_separation_TE_correlation_HM_pbc=False.npy"
+file_name="test_pbc=True.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
 
 optim_params1 = {"maxiter": iter_per_step1, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
-device = 0 # GPU to use
+device = 1 # GPU to use
 
 Mn = 50 # Number of noises per iteration
 batch_size = 10
