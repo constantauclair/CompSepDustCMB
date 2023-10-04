@@ -39,11 +39,11 @@ L3 : (u + n_FM) x T = d_FM x T
 M, N = 512, 512
 J = 7
 L = 4
-dn = 2
+dn = 5
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_pbc=False_dn=2_u0=gwn.npy"
+file_name="separation_TE_correlation_HM_pbc=False_dn=5_u0=T_noL2.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
@@ -200,11 +200,11 @@ def objective2(x):
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
     L1 = compute_loss(u,coeffs_target_L1,std_L1,mask_L1,cross=False)
     print(f"L1 = {round(L1.item(),3)}")
-    L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
-    print(f"L2 = {round(L2.item(),3)}")
+    # L2 = compute_loss(torch.from_numpy(d_FM).to(device)-u,coeffs_target_L2,std_L2,mask_L2,cross=False)
+    # print(f"L2 = {round(L2.item(),3)}")
     L3 = compute_loss([u,torch.from_numpy(T).to(device)],coeffs_target_L3,std_L3,mask_L3,cross=True)
     print(f"L3 = {round(L3.item(),3)}")
-    L = L1 + L2 + L3 # Define total loss 
+    L = L1 + L3 #L1 + L2 + L3 # Define total loss 
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print(f"L = {round(L.item(),3)} (computed in {round(time.time() - start_time,3)} s)")
     print("")
@@ -252,10 +252,10 @@ if __name__ == "__main__":
     # Creating new variable
     s_tilde = s_tilde0
     # Computation of the coeffs, std and mask
-    start_time_L2 = time.time()
-    coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
-    mask_L2 = compute_mask(n_FM_batch[0,0],std_L2)
-    print(f"L2 data computed in {time.time()-start_time_L2}")
+    # start_time_L2 = time.time()
+    # coeffs_target_L2, std_L2 = compute_bias_std_L2(n_FM_batch)
+    # mask_L2 = compute_mask(n_FM_batch[0,0],std_L2)
+    # print(f"L2 data computed in {time.time()-start_time_L2}")
     for i in range(n_step2):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
