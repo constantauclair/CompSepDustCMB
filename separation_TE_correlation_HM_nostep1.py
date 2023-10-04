@@ -24,11 +24,8 @@ Loss terms:
 # Dust 
 L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 
-# Noise + CMB
-L2 : (d_FM - u) = n_FM                              maybe L2bis : (d_HM1 - u) x (d_HM2 - u) = n_HM1 x n_HM2 ?
-
 # T correlation
-L3 : (u + n_FM) x T = d_FM x T
+L2 : (u + n_FM) x T = d_FM x T
 
 '''
 

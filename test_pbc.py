@@ -178,7 +178,8 @@ if __name__ == "__main__":
         result = opt.minimize(objective1, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
-        s_tilde0 = s_tilde.reshape((M, N)).astype(np.float32)
+        s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
+        print("Loss =", (wph_op.apply([torch.from_numpy(s_tilde).to(device),torch.from_numpy(s_tilde).to(device)], norm=None, pbc=pbc, cross=True) - coeffs_target_L1)/std_L1 )
         print("Era "+str(i+1)+" done !")
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
