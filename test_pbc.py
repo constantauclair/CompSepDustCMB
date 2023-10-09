@@ -32,10 +32,10 @@ L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument('pbc', type=bool)
+parser.add_argument('pbc', type=int)
 parser.add_argument('dn', type=int)
 args = parser.parse_args()
-pbc = args.pbc
+pbc = bool(args.pbc)
 dn = args.dn
 
 M, N = 512, 512
