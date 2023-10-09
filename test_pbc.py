@@ -37,7 +37,7 @@ dn = 0
 pbc = False
 method = 'L-BFGS-B'
 
-file_name="test_pbc=True.npy"
+file_name="test_pbc=False_dn=0.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
