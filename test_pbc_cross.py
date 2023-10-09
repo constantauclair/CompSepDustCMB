@@ -23,7 +23,7 @@ and T (the temperature map).
 Loss terms:
     
 # Dust 
-L1 : (u + n_FM)= d_FM
+L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 
 '''
 
@@ -43,7 +43,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+"_logT_FM.npy"
+file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+"_logT.npy"
 
 print(file_name)
 
@@ -64,6 +64,8 @@ n_batch = int(Mn/batch_size)
 
 # Dust 
 d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_FM.npy').astype(np.float32)
+d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM1.npy').astype(np.float32)
+d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM2.npy').astype(np.float32)
 
 # CMB
 c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
@@ -71,6 +73,8 @@ c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np
 # Noise
 noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy').astype(np.float32)
 n_FM = noise_set[:Mn] + c
+n_HM1 = noise_set[:Mn] * np.sqrt(2) + c
+n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
 
 # T map
 T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
@@ -86,17 +90,19 @@ def create_batch(n, device):
     return batch.to(device)
 
 n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
+n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
+n_HM2_batch = create_batch(torch.from_numpy(n_HM2).to(device), device=device)
 
-def compute_bias_std_L1(u_A, conta_A):
-    coeffs_ref = wph_op.apply(u_A, norm=None, pbc=pbc, cross=False)
+def compute_bias_std_L1(u_A, u_B, conta_A, conta_B):
+    coeffs_ref = wph_op.apply([u_A,u_B], norm=None, pbc=pbc, cross=True)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
-        u, nb_chunks = wph_op.preconfigure(u_A + conta_A[i], pbc=pbc, cross=False)
+        u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],u_B + conta_B[i]], pbc=pbc, cross=True)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=False)
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
@@ -167,10 +173,10 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         # L1
-        bias_L1, std_L1 = compute_bias_std_L1(s_tilde, n_FM_batch)
+        bias_L1, std_L1 = compute_bias_std_L1(s_tilde, s_tilde, n_HM1_batch, n_HM2_batch)
         print("Bias =",bias_L1)
         print("Std =",std_L1)
-        coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc, cross=False)
+        coeffs_L1 = wph_op.apply([torch.from_numpy(d_HM1).to(device),torch.from_numpy(d_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         print("Coeffs =",coeffs_L1)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1) - bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1) - bias_L1[1],dim=0)))
         print("Coeffs target =",coeffs_target_L1)
@@ -181,7 +187,7 @@ if __name__ == "__main__":
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
         s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
-        coeffs = wph_op.apply(torch.from_numpy(s_tilde).to(device), norm=None, pbc=pbc, cross=False)
+        coeffs = wph_op.apply([torch.from_numpy(s_tilde).to(device),torch.from_numpy(s_tilde).to(device)], norm=None, pbc=pbc, cross=True)
         print("Loss real =", (torch.real(coeffs)[mask_L1[0]] - coeffs_target_L1[0][mask_L1[0]]) / std_L1[0][mask_L1[0]] )
         print("Loss imag =", (torch.imag(coeffs)[mask_L1[1]] - coeffs_target_L1[1][mask_L1[1]]) / std_L1[1][mask_L1[1]] )
         print("Era "+str(i+1)+" done !")
