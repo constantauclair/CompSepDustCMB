@@ -45,6 +45,8 @@ method = 'L-BFGS-B'
 
 file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+".npy"
 
+print(file_name)
+
 n_step1 = 5
 iter_per_step1 = 50
 
