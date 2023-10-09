@@ -34,10 +34,10 @@ M, N = 512, 512
 J = 7
 L = 4
 dn = 0
-pbc = False
+pbc = True
 method = 'L-BFGS-B'
 
-file_name="test_pbc=False_dn=0.npy"
+file_name="test_pbc=True_dn=0.npy"
 
 n_step1 = 5
 iter_per_step1 = 50
