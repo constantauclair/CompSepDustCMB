@@ -43,7 +43,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+".npy"
+file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+"_logT.npy"
 
 print(file_name)
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization (only S11)...")
     eval_cnt = 0
-    s_tilde = T / (6*1e4) #np.random.normal(0,1,size=np.shape(d_FM)) #d_FM
+    s_tilde = np.log(T) * 4 #np.random.normal(0,1,size=np.shape(d_FM)) #d_FM
     for i in range(n_step1):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
