@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import scipy.optimize as opt
 import pywph as pw
+import argparse
 
 '''
 This component separation algorithm aims to separate the polarized E dust emission from the CMB 
@@ -30,14 +31,19 @@ L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 # INPUT PARAMETERS
 ###############################################################################
 
+parser = argparse.ArgumentParser()
+parser.add_argument('pbc', type=bool)
+parser.add_argument('dn', type=int)
+args = parser.parse_args()
+pbc = args.pbc
+dn = args.dn
+
 M, N = 512, 512
 J = 7
 L = 4
-dn = 0
-pbc = False
 method = 'L-BFGS-B'
 
-file_name="test_pbc=True_dn=0.npy"
+file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+".npy"
 
 n_step1 = 5
 iter_per_step1 = 50
