@@ -33,7 +33,7 @@ L1 : (u + n_HM1) x (u + n_HM2) = d_HM1 x d_HM2
 M, N = 512, 512
 J = 7
 L = 4
-dn = 2
+dn = 0
 pbc = False
 method = 'L-BFGS-B'
 
