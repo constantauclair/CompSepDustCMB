@@ -169,21 +169,14 @@ if __name__ == "__main__":
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         # L1
         _, std_L1 = compute_bias_std_L1(s_tilde, n_FM_batch)
-        print("Std =",std_L1)
         coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc, cross=False)
-        print("Coeffs =",coeffs_L1)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1),dim=0),torch.unsqueeze(torch.imag(coeffs_L1),dim=0)))
-        print("Coeffs target =",coeffs_target_L1)
         mask_L1 = compute_mask(s_tilde, std_L1)
-        print("Mask =",mask_L1)
         # Minimization
         result = opt.minimize(objective1, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
         s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
-        coeffs = wph_op.apply(torch.from_numpy(s_tilde).to(device), norm=None, pbc=pbc, cross=False)
-        print("Loss real =", (torch.real(coeffs)[mask_L1[0]] - coeffs_target_L1[0][mask_L1[0]]) / std_L1[0][mask_L1[0]] )
-        print("Loss imag =", (torch.imag(coeffs)[mask_L1[1]] - coeffs_target_L1[1][mask_L1[1]]) / std_L1[1][mask_L1[1]] )
         print("Era "+str(i+1)+" done !")
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
