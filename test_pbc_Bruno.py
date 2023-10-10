@@ -43,7 +43,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+"_logT_FM_Bruno.npy"
+file_name="test_pbc="+str(pbc)+"_dn="+str(dn)+"_logT_FM_Bruno_allcoeffs.npy"
 
 print(file_name)
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"]) #wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
