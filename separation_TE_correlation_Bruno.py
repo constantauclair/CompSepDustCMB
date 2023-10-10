@@ -28,10 +28,10 @@ L1 : (u + n_FM)= d_FM
 # T correlation
 L2 : (u + n_FM) x T = d_FM x T
 
-'''
+# Noise + CMB  
+L3 : (d_FM - u) = n_FM  
 
-# Noise + CMB
-#L3 : (d_FM - u) = n_FM     
+''' 
 
 ###############################################################################
 # INPUT PARAMETERS
@@ -49,7 +49,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_Bruno_L12_S11_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
+file_name="separation_TE_correlation_HM_Bruno_L123_S11_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -133,6 +133,25 @@ def compute_std_L2(u_A, conta_A):
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
     return std.to(device)
 
+def compute_mean_std_L3(conta_A):
+    coeffs_ref = wph_op.apply(conta_A[0,0], norm=None, pbc=pbc, cross=False)
+    coeffs_number = coeffs_ref.size(-1)
+    ref_type = coeffs_ref.type()
+    COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
+    for i in range(n_batch):
+        batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
+        u, nb_chunks = wph_op.preconfigure(conta_A[i], pbc=pbc, cross=False)
+        for j in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
+            del coeffs_chunk, indices
+        COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
+        del u, nb_chunks, batch_COEFFS
+        sys.stdout.flush() # Flush the standard output
+    mean = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
+    std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    return mean.to(device), std.to(device)
+
 def compute_mask(x,std,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
     thresh = 1e-5
@@ -143,11 +162,8 @@ def compute_mask(x,std,cross=False):
 
 def compute_L1(x,coeffs_target,std,mask):
     coeffs_target = coeffs_target.to(device)
-    print(coeffs_target.size())
     std = std.to(device)
-    print(std.size())
     mask = mask.to(device)
-    print(mask.size())
     loss_tot = torch.zeros(1)
     for j in range(Mn):
         u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(n_FM[j]).to(device), requires_grad=True, pbc=pbc, cross=False)
@@ -174,6 +190,20 @@ def compute_L2(x,coeffs_target,std,mask):
             del coeffs_chunk, indices, loss
     return loss_tot
 
+def compute_L3(x,coeffs_target,std,mask):
+    coeffs_target = coeffs_target.to(device)
+    std = std.to(device)
+    mask = mask.to(device)
+    loss_tot = torch.zeros(1)
+    u_noisy, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc, cross=False)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=False)
+        loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
+        loss.backward(retain_graph=True)
+        loss_tot += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+    return loss_tot
+
 ###############################################################################
 # OBJECTIVE FUNCTIONS
 ###############################################################################
@@ -188,7 +218,9 @@ def objective(x):
     print("L1 = "+str(round(L1.item(),3)))
     L2 = compute_L2(u,coeffs_target_L2,std_L2,mask_L2) # Compute L2
     print("L2 = "+str(round(L2.item(),3)))
-    L = L1 + L2
+    L3 = compute_L3(u,coeffs_target_L3,std_L3,mask_L3) # Compute L3
+    print("L3 = "+str(round(L3.item(),3)))
+    L = L1 + L2 + L3
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -226,6 +258,9 @@ if __name__ == "__main__":
         coeffs_L2 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2),dim=0),torch.unsqueeze(torch.imag(coeffs_L2),dim=0)))
         mask_L2 = compute_mask(s_tilde, std_L2)
+        # L3
+        coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
+        mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
         # Minimization
         result = opt.minimize(objective, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
