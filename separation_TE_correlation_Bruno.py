@@ -142,7 +142,7 @@ def compute_mean_std_L3(conta_A):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure(conta_A[i], pbc=pbc, cross=False)
         for j in range(nb_chunks):
-            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
+            coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=False)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
