@@ -143,8 +143,11 @@ def compute_mask(x,std,cross=False):
 
 def compute_L1(x,coeffs_target,std,mask):
     coeffs_target = coeffs_target.to(device)
+    print(coeffs_target.size())
     std = std.to(device)
+    print(std.size())
     mask = mask.to(device)
+    print(mask.size())
     loss_tot = torch.zeros(1)
     for j in range(Mn):
         u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(n_FM[j]).to(device), requires_grad=True, pbc=pbc, cross=False)
