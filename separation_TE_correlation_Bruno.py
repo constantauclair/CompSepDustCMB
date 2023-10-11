@@ -49,7 +49,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_Bruno_L123_S11_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
+file_name="separation_TE_correlation_HM_Bruno_L123_allcoeffs_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"]) #wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
