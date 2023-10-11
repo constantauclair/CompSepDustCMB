@@ -263,9 +263,9 @@ if __name__ == "__main__":
         mask_L2 = compute_mask(s_tilde0, std_L2)
         # Minimization
         result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
-        final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+        final_loss, s_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
-        s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
+        s_tilde0 = s_tilde0.reshape((M, N)).astype(np.float32)
         print("Era "+str(i+1)+" done !")
         
     ## Second minimization
