@@ -49,12 +49,12 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_Bruno_L123_allcoeffs_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
+file_name="separation_TE_correlation_HM_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
 
 n_step = 5
 iter_per_step = 50
 
-optim_params1 = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
+optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
 device = 0 # GPU to use
 
@@ -238,13 +238,47 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"]) #wph_op.load_model(["S11"])
+    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     ## First minimization
-    print("Starting minimization...")
+    print("Starting first minimization...")
     eval_cnt = 0
-    s_tilde = np.log(T) * 4
+    s_tilde0 = np.log(T) * 4
+    # L3
+    coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
+    mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
+    for i in range(n_step):
+        print("Starting era "+str(i+1)+"...")
+        s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
+        # L1
+        std_L1 = compute_std_L1(s_tilde0, n_FM_batch)
+        coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc, cross=False)
+        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1),dim=0),torch.unsqueeze(torch.imag(coeffs_L1),dim=0)))
+        mask_L1 = compute_mask(s_tilde0, std_L1)
+        # L2
+        std_L2 = compute_std_L2(s_tilde0, n_FM_batch)
+        coeffs_L2 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
+        coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2),dim=0),torch.unsqueeze(torch.imag(coeffs_L2),dim=0)))
+        mask_L2 = compute_mask(s_tilde0, std_L2)
+        # Minimization
+        result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
+        final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
+        # Reshaping
+        s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
+        print("Era "+str(i+1)+" done !")
+        
+    ## Second minimization
+    print("Starting second minimization...")
+    eval_cnt = 0
+    # Initializing operator
+    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_op.clear_normalization()
+    # Creating new variable
+    s_tilde = s_tilde0
+    # L3
+    coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
+    mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
@@ -258,11 +292,8 @@ if __name__ == "__main__":
         coeffs_L2 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2),dim=0),torch.unsqueeze(torch.imag(coeffs_L2),dim=0)))
         mask_L2 = compute_mask(s_tilde, std_L2)
-        # L3
-        coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
-        mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
         # Minimization
-        result = opt.minimize(objective, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params1)
+        result = opt.minimize(objective, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
         final_loss, s_tilde, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
         s_tilde = s_tilde.reshape((M, N)).astype(np.float32)
@@ -270,4 +301,4 @@ if __name__ == "__main__":
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     if file_name is not None:
-        np.save(file_name, np.array([T,d_FM,s_tilde,d_FM-s_tilde]))
+        np.save(file_name, np.array([T,d_FM,s_tilde,d_FM-s_tilde,s_tilde0]))
