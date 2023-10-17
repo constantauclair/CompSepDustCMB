@@ -49,7 +49,9 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-file_name="separation_TE_correlation_HM_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
+freq = 217
+
+file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -67,18 +69,14 @@ n_batch = int(Mn/batch_size)
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_FM.npy').astype(np.float32)
-#d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM1.npy').astype(np.float32)
-#d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_353_HM2.npy').astype(np.float32)
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_"+str(freq)+"_FM.npy').astype(np.float32)
 
 # CMB
 c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_353.npy').astype(np.float32)
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_"+str(freq)+".npy').astype(np.float32)
 n_FM = noise_set[:Mn] + c
-#n_HM1 = noise_set[:Mn] * np.sqrt(2) + c
-#n_HM2 = noise_set[Mn:2*Mn] * np.sqrt(2) + c
 
 # T map
 T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
@@ -94,8 +92,6 @@ def create_batch(n, device):
     return batch.to(device)
 
 n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
-#n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
-#n_HM2_batch = create_batch(torch.from_numpy(n_HM2).to(device), device=device)
 
 def compute_std_L1(u_A, conta_A):
     coeffs_ref = wph_op.apply(u_A, norm=None, pbc=pbc, cross=False)
