@@ -49,7 +49,7 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-freq = 217
+freq = 143
 
 file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
 
