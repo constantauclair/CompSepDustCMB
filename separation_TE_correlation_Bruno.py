@@ -31,6 +31,11 @@ L2 : (u + n_FM) x T = d_FM x T
 # Noise + CMB  
 L3 : (d_FM - u) = n_FM  
 
+u0 353 = 4 log(T)
+u0 217 = 2 log(T)
+u0 143 = 1 log(T)
+u0 100 = 0.5 log(T)
+
 ''' 
 
 ###############################################################################
@@ -49,9 +54,10 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-freq = 143
+freq = 217
+fac_u0 = 2
 
-file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=4logT.npy"
+file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=2logT.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -240,7 +246,7 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization...")
     eval_cnt = 0
-    s_tilde0 = np.log(T) * 4
+    s_tilde0 = np.log(T) * fac_u0
     # L3
     coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
     mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
