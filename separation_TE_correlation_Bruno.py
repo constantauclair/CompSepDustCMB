@@ -54,10 +54,10 @@ J = 7
 L = 4
 method = 'L-BFGS-B'
 
-freq = 217
-fac_u0 = 2
+freq = 143
+fac_u0 = 1
 
-file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=2logT.npy"
+file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=1logT.npy"
 
 n_step = 5
 iter_per_step = 50
