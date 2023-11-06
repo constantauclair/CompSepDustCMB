@@ -30,4 +30,4 @@ for i in range(n_noise_maps):
     plt.close()
     print(i,"done !")
 
-np.save("../data/IQU_Planck_data/TE correlation data/Noise_IQU_"+str(freq)+".npy",IQU_Noise_maps)
+np.save("../data/IQU_Planck_data/multifrequency QU separation/Noise_IQU_"+str(freq)+".npy",1e6 * IQU_Noise_maps)
