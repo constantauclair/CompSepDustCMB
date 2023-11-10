@@ -43,21 +43,27 @@ u0 100 = 0.5 log(T)
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument('pbc', type=int)
-parser.add_argument('dn', type=int)
+parser.add_argument('freq', type=int)
 args = parser.parse_args()
-pbc = bool(args.pbc)
-dn = args.dn
+freq = int(args.freq)
 
 M, N = 512, 512
 J = 7
 L = 4
 method = 'L-BFGS-B'
+pbc = False
+dn = 5
 
-freq = 100
-fac_u0 = 0.5
+if freq == 100:
+    fac_u0 = 0.5
+if freq == 143:
+    fac_u0 = 1
+if freq == 217:
+    fac_u0 = 2
+if freq == 353:
+    fac_u0 = 4
 
-file_name="separation_TE_correlation_"+str(freq)+"_Bruno_L123_2steps_pbc="+str(pbc)+"_dn="+str(dn)+"_u0=05logT.npy"
+file_name="separation_TE_correlation_"+str(freq)+"_symcoeffs.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -274,7 +280,7 @@ if __name__ == "__main__":
     print("Starting second minimization...")
     eval_cnt = 0
     # Initializing operator
-    wph_op.load_model(["S11","S00","S01","Cphase","C01","C00","L"])
+    wph_op.load_model(["S11","S00","S01","S10","Cphase","C01","C10","C00","L"])
     wph_op.clear_normalization()
     # Creating new variable
     s_tilde = s_tilde0
