@@ -47,8 +47,8 @@ parser.add_argument('freq', type=int)
 args = parser.parse_args()
 freq = int(args.freq)
 
-M, N = 512, 512
-J = 7
+M, N = 256, 256
+J = 6
 L = 4
 method = 'L-BFGS-B'
 pbc = False
@@ -63,7 +63,7 @@ if freq == 217:
 if freq == 353:
     fac_u0 = 4
 
-file_name="separation_TE_correlation_"+str(freq)+"_symcoeffs.npy"
+file_name="separation_TE_correlation_"+str(freq)+"_symcoeffs_256.npy"
 
 n_step = 5
 iter_per_step = 50
