@@ -81,17 +81,17 @@ n_batch = int(Mn/batch_size)
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)[::2,::2]
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn,::2,::2]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)
-n_FM = noise_set[:Mn] + c
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)[:Mn,::2,::2]
+n_FM = noise_set + c
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)[::2,::2]
 
 ###############################################################################
 # USEFUL FUNCTIONS
