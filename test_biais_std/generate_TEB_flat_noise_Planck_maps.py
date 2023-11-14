@@ -31,6 +31,6 @@ for i in range(n_noise_maps):
     plt.close()
     TEB_Noise_maps[2,i] = np.array(hp.gnomview(TEB_Noise_map[2],coord='G',rot=[longitude,latitude],reso=reso,xsize=N,ysize=N,return_projected_map=True,cmap='inferno'))
     plt.close()
-    print(i,"done !")
+    print("Map "+str(i+1)+" done !")
 
-np.save("../data/IQU_Planck_data/TE correlation data/Noise_TEB_"+str(freq)+"_le_debut.npy",TEB_Noise_maps)
+np.save("../data/IQU_Planck_data/TE correlation data/Noise_TEB_"+str(freq)+"_768_le_debut.npy",TEB_Noise_maps)
