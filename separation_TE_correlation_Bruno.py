@@ -47,8 +47,8 @@ parser.add_argument('freq', type=int)
 args = parser.parse_args()
 freq = int(args.freq)
 
-M, N = 256, 256
-J = 6
+M, N = 512,512
+J = 7
 L = 4
 method = 'L-BFGS-B'
 pbc = False
@@ -63,7 +63,7 @@ if freq == 217:
 if freq == 353:
     fac_u0 = 4
 
-file_name="separation_TE_correlation_"+str(freq)+"_symcoeffs_256.npy"
+file_name="separation_TE_correlation_"+str(freq)+"_symcoeffs_512.npy"
 
 n_step = 5
 iter_per_step = 50
@@ -73,7 +73,7 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 device = 0 # GPU to use
 
 Mn = 50 # Number of noises per iteration
-batch_size = 10
+batch_size = 5
 n_batch = int(Mn/batch_size)
 
 ###############################################################################
@@ -81,17 +81,17 @@ n_batch = int(Mn/batch_size)
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)[::2,::2]
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn,::2,::2]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)[:Mn,::2,::2]
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)[:Mn]
 n_FM = noise_set + c
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)[::2,::2]
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
 
 ###############################################################################
 # USEFUL FUNCTIONS
