@@ -43,7 +43,7 @@ args = parser.parse_args()
 freq = int(args.freq)
 
 M, N = 512,512
-J = 7
+J = 6#7
 L = 4
 method = 'L-BFGS-B'
 pbc = False
@@ -59,7 +59,7 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 device = 0 # GPU to use
 
 Mn = 50 # Number of noises per iteration
-batch_size = 2
+batch_size = 5
 n_batch = int(Mn/batch_size)
 
 ###############################################################################
