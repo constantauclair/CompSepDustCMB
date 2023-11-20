@@ -48,7 +48,7 @@ args = parser.parse_args()
 freq = int(args.freq)
 
 M, N = 768,768#512,512
-J = 8#7
+J = 7
 L = 4
 method = 'L-BFGS-B'
 pbc = False
