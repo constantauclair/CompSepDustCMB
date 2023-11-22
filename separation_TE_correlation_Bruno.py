@@ -73,8 +73,11 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 device = 0 # GPU to use
 
 Mn = 50 # Number of noises per iteration
-batch_size = 1
+batch_size = 5
 n_batch = int(Mn/batch_size)
+
+wph_model = ["S11","S00","S01","Cphase","C01","C00","L"]
+wph_model_cross = ["S11","S00","S01","S10","Cphase","C01","C10","C00","L"]
 
 ###############################################################################
 # DATA
@@ -216,7 +219,7 @@ def compute_L3(x,coeffs_target,std,mask):
 # OBJECTIVE FUNCTIONS
 ###############################################################################
 
-def objective(x):
+def objective_S11(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
@@ -226,6 +229,29 @@ def objective(x):
     print("L1 = "+str(round(L1.item(),3)))
     L2 = compute_L2(u,coeffs_target_L2,std_L2,mask_L2) # Compute L2
     print("L2 = "+str(round(L2.item(),3)))
+    L3 = compute_L3(u,coeffs_target_L3,std_L3,mask_L3) # Compute L3
+    print("L3 = "+str(round(L3.item(),3)))
+    L = L1 + L2 + L3
+    u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
+    print("L = "+str(round(L.item(),3)))
+    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
+    print("")
+    eval_cnt += 1
+    return L.item(), u_grad.ravel()
+
+def objective(x):
+    global eval_cnt
+    print(f"Evaluation: {eval_cnt}")
+    start_time = time.time()
+    u = x.reshape((M, N)) # Reshape x
+    u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
+    wph_op.load_model(wph_model)
+    L1 = compute_L1(u,coeffs_target_L1,std_L1,mask_L1) # Compute L1
+    print("L1 = "+str(round(L1.item(),3)))
+    wph_op.load_model(wph_model_cross)
+    L2 = compute_L2(u,coeffs_target_L2,std_L2,mask_L2) # Compute L2
+    print("L2 = "+str(round(L2.item(),3)))
+    wph_op.load_model(wph_model)
     L3 = compute_L3(u,coeffs_target_L3,std_L3,mask_L3) # Compute L3
     print("L3 = "+str(round(L3.item(),3)))
     L = L1 + L2 + L3
@@ -270,7 +296,7 @@ if __name__ == "__main__":
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2),dim=0),torch.unsqueeze(torch.imag(coeffs_L2),dim=0)))
         mask_L2 = compute_mask(s_tilde0, std_L2)
         # Minimization
-        result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
+        result = opt.minimize(objective_S11, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
         final_loss, s_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
         # Reshaping
         s_tilde0 = s_tilde0.reshape((M, N)).astype(np.float32)
@@ -280,22 +306,24 @@ if __name__ == "__main__":
     print("Starting second minimization...")
     eval_cnt = 0
     # Initializing operator
-    wph_op.load_model(["S11","S00","S01","S10","Cphase","C01","C10","C00","L"])
     wph_op.clear_normalization()
     # Creating new variable
     s_tilde = s_tilde0
     # L3
+    wph_op.load_model(wph_model)
     coeffs_target_L3, std_L3 = compute_mean_std_L3(n_FM_batch)
     mask_L3 = compute_mask(n_FM_batch[0,0], std_L3)
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         # L1
+        wph_op.load_model(wph_model)
         std_L1 = compute_std_L1(s_tilde, n_FM_batch)
         coeffs_L1 = wph_op.apply(torch.from_numpy(d_FM).to(device), norm=None, pbc=pbc, cross=False)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1),dim=0),torch.unsqueeze(torch.imag(coeffs_L1),dim=0)))
         mask_L1 = compute_mask(s_tilde, std_L1)
         # L2
+        wph_op.load_model(wph_model_cross)
         std_L2 = compute_std_L2(s_tilde, n_FM_batch)
         coeffs_L2 = wph_op.apply([torch.from_numpy(d_FM).to(device),torch.from_numpy(T).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2),dim=0),torch.unsqueeze(torch.imag(coeffs_L2),dim=0)))
