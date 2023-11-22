@@ -73,7 +73,7 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 device = 0 # GPU to use
 
 Mn = 50 # Number of noises per iteration
-batch_size = 5
+batch_size = 2
 n_batch = int(Mn/batch_size)
 
 wph_model = ["S11","S00","S01","Cphase","C01","C00","L"]
