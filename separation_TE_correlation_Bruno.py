@@ -47,7 +47,7 @@ parser.add_argument('freq', type=int)
 args = parser.parse_args()
 freq = int(args.freq)
 
-M, N = 512,512#768,768
+M, N = 768,768#512,512
 J = 7
 L = 4
 method = 'L-BFGS-B'
@@ -84,17 +84,17 @@ wph_model_cross = ["S11","S00","S01","S10","Cphase","C01","C10","C00","L"]
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM_768px.npy').astype(np.float32)
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps_768px.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)[:Mn]
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'_768px.npy').astype(np.float32)[:Mn]
 n_FM = noise_set + c
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857_768px.npy').astype(np.float32)
 
 ###############################################################################
 # USEFUL FUNCTIONS
@@ -192,7 +192,7 @@ def compute_L2(x,coeffs_target,std,mask):
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
     for j in range(Mn):
-        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(n_FM[j]).to(device),torch.from_numpy(T).to(device)], requires_grad=True, pbc=pbc, cross=True)
+        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(n_FM[j]).to(device),torch.from_numpy(T).to(device)], requires_grad=True, pbc=pbc, cross=True, mem_chunk_factor=50, mem_chunk_factor_grad=80)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
@@ -206,7 +206,7 @@ def compute_L3(x,coeffs_target,std,mask):
     std = std.to(device)
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
-    u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(d_FM).to(device) - x, requires_grad=True, pbc=pbc, cross=False)
+    u_noisy, nb_chunks = wph_op.preconfigure(torch.from_numpy(d_FM).to(device) - x, requires_grad=True, pbc=pbc, cross=False, mem_chunk_factor=50, mem_chunk_factor_grad=80)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=False)
         loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() )
