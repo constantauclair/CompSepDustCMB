@@ -47,7 +47,7 @@ parser.add_argument('freq', type=int)
 args = parser.parse_args()
 freq = int(args.freq)
 
-M, N = 768,768#512,512
+M, N = 512,512#768,768
 J = 7
 L = 4
 method = 'L-BFGS-B'
@@ -84,17 +84,17 @@ wph_model_cross = ["S11","S00","S01","S10","Cphase","C01","C10","C00","L"]
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM_768px.npy').astype(np.float32)
+d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM.npy').astype(np.float32)
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps_768px.npy').astype(np.float32)[:Mn]
+c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'_768px.npy').astype(np.float32)[:Mn]
+noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'.npy').astype(np.float32)[:Mn]
 n_FM = noise_set + c
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857_768px.npy').astype(np.float32)
+T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857.npy').astype(np.float32)
 
 ###############################################################################
 # USEFUL FUNCTIONS
