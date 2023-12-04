@@ -32,9 +32,9 @@ L2 : (u + n_FM) x T = d_FM x T
 L3 : (d_FM - u) = n_FM  
 
 u0 353 = 4 log(T)
-u0 217 = 2 log(T)
-u0 143 = 1 log(T)
-u0 100 = 0.5 log(T)
+u0 217 = 1 log(T)
+u0 143 = 0.3 log(T)
+u0 100 = 0.2 log(T)
 
 ''' 
 
@@ -55,11 +55,11 @@ pbc = False
 dn = 5
 
 if freq == 100:
-    fac_u0 = 0.5
+    fac_u0 = 0.2
 if freq == 143:
-    fac_u0 = 1
+    fac_u0 = 0.3
 if freq == 217:
-    fac_u0 = 2
+    fac_u0 = 1
 if freq == 353:
     fac_u0 = 4
 
