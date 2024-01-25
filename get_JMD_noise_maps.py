@@ -75,15 +75,25 @@ for i in range(n_maps):
     Sroll_Noise_IQU_maps_217_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/217GHz_'+str(i+100)+'_hm2_IQU.npy') * 1e6
 
     # 353 GHz
+    if i < 9:
         # TEB
-    Sroll_Noise_TEB_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_full_TEB.npy') * 1e6
-    Sroll_Noise_TEB_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm1_TEB.npy') * 1e6
-    Sroll_Noise_TEB_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm2_TEB.npy') * 1e6
+        Sroll_Noise_TEB_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_full_TEB.npy') * 1e6
+        Sroll_Noise_TEB_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm1_TEB.npy') * 1e6
+        Sroll_Noise_TEB_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm2_TEB.npy') * 1e6
         # IQU
-    Sroll_Noise_IQU_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_full_IQU.npy') * 1e6
-    Sroll_Noise_IQU_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm1_IQU.npy') * 1e6
-    Sroll_Noise_IQU_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm2_IQU.npy') * 1e6
-     
+        Sroll_Noise_IQU_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_full_IQU.npy') * 1e6
+        Sroll_Noise_IQU_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm1_IQU.npy') * 1e6
+        Sroll_Noise_IQU_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+100)+'_hm2_IQU.npy') * 1e6
+    if i >= 9:
+        # TEB
+        Sroll_Noise_TEB_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_full_TEB.npy') * 1e6
+        Sroll_Noise_TEB_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_hm1_TEB.npy') * 1e6
+        Sroll_Noise_TEB_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_hm2_TEB.npy') * 1e6
+        # IQU
+        Sroll_Noise_IQU_maps_353_FM_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_full_IQU.npy') * 1e6
+        Sroll_Noise_IQU_maps_353_HM1_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_hm1_IQU.npy') * 1e6
+        Sroll_Noise_IQU_maps_353_HM2_768px[:,i] = np.load('/travail/jdelouis/NOISEMAP/353GHz_'+str(i+101)+'_hm2_IQU.npy') * 1e6
+         
 np.save('/data/IQU_Planck_data/TE correlation data/Sroll2/Sroll_Noise_TEB_maps_100_FM_768px.npy',Sroll_Noise_TEB_maps_100_FM_768px)
 np.save('/data/IQU_Planck_data/TE correlation data/Sroll2/Sroll_Noise_TEB_maps_100_HM1_768px.npy',Sroll_Noise_TEB_maps_100_HM1_768px)
 np.save('/data/IQU_Planck_data/TE correlation data/Sroll2/Sroll_Noise_TEB_maps_100_HM2_768px.npy',Sroll_Noise_TEB_maps_100_HM2_768px)
