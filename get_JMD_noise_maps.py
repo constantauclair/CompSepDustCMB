@@ -1,6 +1,6 @@
 import numpy as np
 
-n_maps = 90
+n_maps = 50
 N = 768
 
 # 100 GHz
