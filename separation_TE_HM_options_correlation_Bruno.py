@@ -58,9 +58,6 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-fac_n_HM1 = 1.25
-fac_n_HM2 = np.sqrt(4 - fac_n_HM1**2)
-
 if freq == 100:
     fac_u0 = 0.2
 if freq == 143:
@@ -70,8 +67,9 @@ if freq == 217:
 if freq == 353:
     fac_u0 = 4
 
-file_name="separation_correlation_"+str(freq)+"_symcoeffs_768_"+E_or_TE+"_"+HM_or_FM+".npy"
+file_name="separation_correlation_"+str(freq)+"_768_"+E_or_TE+"_"+HM_or_FM+".npy"
 
+Mn = 50
 n_step = 5
 iter_per_step = 50
 
@@ -79,7 +77,6 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 
 device = 0 # GPU to use
 
-Mn = 50 # Number of noises per iteration
 batch_size = 2
 n_batch = int(Mn/batch_size)
 
@@ -91,21 +88,24 @@ wph_model_cross = ["S11","S00","S01","S10","Cphase","C01","C10","C00","L"]
 ###############################################################################
 
 # Dust 
-d_FM = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_FM_768px.npy').astype(np.float32)
-d_HM1 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_HM1_768px.npy').astype(np.float32)
-d_HM2 = np.load('data/IQU_Planck_data/TE correlation data/Planck_E_map_'+str(freq)+'_HM2_768px.npy').astype(np.float32)
+d_FM = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Planck_E_map_'+str(freq)+'_FM_768px.npy').astype(np.float32)
+d_HM1 = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Planck_E_map_'+str(freq)+'_HM1_768px.npy').astype(np.float32)
+d_HM2 = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Planck_E_map_'+str(freq)+'_HM2_768px.npy').astype(np.float32)
 
 # CMB
-c = np.load('data/IQU_Planck_data/TE correlation data/CMB_E_maps_768px.npy').astype(np.float32)[:Mn]
+c = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/CMB_E_maps_'+str(freq)+'_768px.npy').astype(np.float32)[:Mn]
 
 # Noise
-noise_set = np.load('data/IQU_Planck_data/TE correlation data/Noise_E_maps_'+str(freq)+'_768px.npy').astype(np.float32)
-n_FM = noise_set[:Mn] + c
-n_HM1 = fac_n_HM1 * noise_set[:Mn] + c
-n_HM2 = fac_n_HM2 * noise_set[Mn:2*Mn] + c
+n_FM = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Sroll_Noise_TEB_maps_'+str(freq)+'_FM_768px.npy')[1].astype(np.float32)
+n_HM1 = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Sroll_Noise_TEB_maps_'+str(freq)+'_HM1_768px.npy')[1].astype(np.float32)
+n_HM2 = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Sroll_Noise_TEB_maps_'+str(freq)+'_HM2_768px.npy')[1].astype(np.float32)
+
+cn_FM = c + n_FM
+cn_HM1 = c + n_HM1
+cn_HM2 = c + n_HM2
 
 # T map
-T = np.load('data/IQU_Planck_data/TE correlation data/Planck_T_map_857_768px.npy').astype(np.float32)
+T = np.load('data/IQU_Planck_data/TE_correlation_data/Sroll2/Planck_T_map_857_768px.npy').astype(np.float32)
 
 ###############################################################################
 # USEFUL FUNCTIONS
@@ -117,9 +117,9 @@ def create_batch(n, device):
         batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-n_FM_batch = create_batch(torch.from_numpy(n_FM).to(device), device=device)
-n_HM1_batch = create_batch(torch.from_numpy(n_HM1).to(device), device=device)
-n_HM2_batch = create_batch(torch.from_numpy(n_HM2).to(device), device=device)
+cn_FM_batch = create_batch(torch.from_numpy(cn_FM).to(device), device=device)
+cn_HM1_batch = create_batch(torch.from_numpy(cn_HM1).to(device), device=device)
+cn_HM2_batch = create_batch(torch.from_numpy(cn_HM2).to(device), device=device)
 
 def compute_std_L1_FM(u_A, conta_A):
     coeffs_ref = wph_op.apply(u_A, norm=None, pbc=pbc, cross=False)
@@ -208,7 +208,7 @@ def compute_L1_FM(x,coeffs_target,std,mask):
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
     for j in range(Mn):
-        u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(n_FM[j]).to(device), requires_grad=True, pbc=pbc, cross=False, mem_chunk_factor=50, mem_chunk_factor_grad=80)
+        u_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(cn_FM[j]).to(device), requires_grad=True, pbc=pbc, cross=False, mem_chunk_factor=50, mem_chunk_factor_grad=80)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=False)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
@@ -223,7 +223,7 @@ def compute_L1_HM(x,coeffs_target,std,mask):
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
     for j in range(Mn):
-        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(n_HM1[j]).to(device),x + torch.from_numpy(n_HM2[j]).to(device)], requires_grad=True, pbc=pbc, cross=True, mem_chunk_factor=50, mem_chunk_factor_grad=80)
+        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(cn_HM1[j]).to(device),x + torch.from_numpy(cn_HM2[j]).to(device)], requires_grad=True, pbc=pbc, cross=True, mem_chunk_factor=50, mem_chunk_factor_grad=80)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
@@ -238,7 +238,7 @@ def compute_L2(x,coeffs_target,std,mask):
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
     for j in range(Mn):
-        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(n_FM[j]).to(device),torch.from_numpy(T).to(device)], requires_grad=True, pbc=pbc, cross=True, mem_chunk_factor=50, mem_chunk_factor_grad=80)
+        u_noisy, nb_chunks = wph_op.preconfigure([x + torch.from_numpy(cn_FM[j]).to(device),torch.from_numpy(T).to(device)], requires_grad=True, pbc=pbc, cross=True, mem_chunk_factor=50, mem_chunk_factor_grad=80)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u_noisy, i, norm=None, ret_indices=True, pbc=pbc, cross=True)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
