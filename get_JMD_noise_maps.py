@@ -17,6 +17,7 @@ for pol in range(n_pol):
         for mission in range(n_mission):
             for sim in range(n_maps):
                 Sroll20_Noise_maps[pol,freq,mission,sim] = np.load('/travail/jdelouis/NEW_NOISE/'+freqs[freq]+'GHz_'+str(sim+100)+'_'+missions[mission]+'_IQU.npy')[pol] * 1e6  
+                print('Done !')
          
 np.save('data/IQU_Planck_data/TE_correlation_data/Sroll2/Sroll20_Noise_maps.npy',Sroll20_Noise_maps)
 
