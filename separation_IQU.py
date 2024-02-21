@@ -97,12 +97,12 @@ del cmb_maps
 print('CMB loaded !')
 
 # Noise
-noise_Q = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_Noise_Q_'+str(freq)+'_maps.npy').astype(np.float32)
+noise_Q = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_Noise_Q_'+str(freqs[freq])+'_maps.npy').astype(np.float32)
 n_Q_FM = noise_Q[0,:Mn]
 n_Q_HM1 = noise_Q[1,:Mn]
 n_Q_HM2 = noise_Q[2,:Mn]
 del noise_Q
-noise_U = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_Noise_U_'+str(freq)+'_maps.npy').astype(np.float32)
+noise_U = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_Noise_U_'+str(freqs[freq])+'_maps.npy').astype(np.float32)
 n_U_FM = noise_U[0,:Mn]
 n_U_HM1 = noise_U[1,:Mn]
 n_U_HM2 = noise_U[2,:Mn]
