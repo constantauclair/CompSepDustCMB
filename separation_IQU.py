@@ -264,21 +264,21 @@ def objective_S11(x):
     u_Q = u[0]
     u_U = u[1]
     ######################
-    L1 = compute_L123(u_Q,u_Q,torch.from_numpy(cn_Q_HM1).to(device),torch.from_numpy(cn_Q_HM2).to(device),coeffs_target_L1,std_L1,mask_L1) # Compute L1
+    L1 = compute_L123(u_Q,u_Q,cn_Q_HM1,cn_Q_HM2,coeffs_target_L1,std_L1,mask_L1) # Compute L1
     print("L1 = "+str(round(L1.item(),3)))
-    L2 = compute_L123(u_U,u_U,torch.from_numpy(cn_U_HM1).to(device),torch.from_numpy(cn_U_HM2).to(device),coeffs_target_L2,std_L2,mask_L2) # Compute L2
+    L2 = compute_L123(u_U,u_U,cn_U_HM1,cn_U_HM2,coeffs_target_L2,std_L2,mask_L2) # Compute L2
     print("L2 = "+str(round(L2.item(),3)))
-    L3 = compute_L123(u_Q,u_U,torch.from_numpy(cn_Q_FM).to(device),torch.from_numpy(cn_U_FM).to(device),coeffs_target_L3,std_L3,mask_L3) # Compute L3
+    L3 = compute_L123(u_Q,u_U,cn_Q_FM,cn_U_FM,coeffs_target_L3,std_L3,mask_L3) # Compute L3
     print("L3 = "+str(round(L3.item(),3)))
     ######################
-    L4 = compute_L45(u_Q,torch.from_numpy(cn_Q_FM).to(device),coeffs_target_L4,std_L4,mask_L4) # Compute L4
+    L4 = compute_L45(u_Q,cn_Q_FM,coeffs_target_L4,std_L4,mask_L4) # Compute L4
     print("L4 = "+str(round(L4.item(),3)))
-    L5 = compute_L45(u_U,torch.from_numpy(cn_U_FM).to(device),coeffs_target_L5,std_L5,mask_L5) # Compute L5
+    L5 = compute_L45(u_U,cn_U_FM,coeffs_target_L5,std_L5,mask_L5) # Compute L5
     print("L5 = "+str(round(L5.item(),3)))
     ######################
-    L6 = compute_L67(u_Q,torch.from_numpy(d_Q_FM).to(device),coeffs_target_L6,std_L6,mask_L6) # Compute L6
+    L6 = compute_L67(u_Q,d_Q_FM,coeffs_target_L6,std_L6,mask_L6) # Compute L6
     print("L6 = "+str(round(L6.item(),3)))
-    L7 = compute_L67(u_U,torch.from_numpy(d_U_FM).to(device),coeffs_target_L7,std_L7,mask_L7) # Compute L7
+    L7 = compute_L67(u_U,d_U_FM,coeffs_target_L7,std_L7,mask_L7) # Compute L7
     print("L7 = "+str(round(L7.item(),3)))
     ######################
     L = L1 + L2 + L3 + L4 + L5 + L6 + L7
@@ -299,23 +299,23 @@ def objective(x):
     u_U = u[1]
     ######################
     wph_op.load_model(wph_model_cross)
-    L1 = compute_L123(u_Q,u_Q,torch.from_numpy(cn_Q_HM1).to(device),torch.from_numpy(cn_Q_HM2).to(device),coeffs_target_L1,std_L1,mask_L1) # Compute L1
+    L1 = compute_L123(u_Q,u_Q,cn_Q_HM1,cn_Q_HM2,coeffs_target_L1,std_L1,mask_L1) # Compute L1
     print("L1 = "+str(round(L1.item(),3)))
-    L2 = compute_L123(u_U,u_U,torch.from_numpy(cn_U_HM1).to(device),torch.from_numpy(cn_U_HM2).to(device),coeffs_target_L2,std_L2,mask_L2) # Compute L2
+    L2 = compute_L123(u_U,u_U,cn_U_HM1,cn_U_HM2,coeffs_target_L2,std_L2,mask_L2) # Compute L2
     print("L2 = "+str(round(L2.item(),3)))
-    L3 = compute_L123(u_Q,u_U,torch.from_numpy(cn_Q_FM).to(device),torch.from_numpy(cn_U_FM).to(device),coeffs_target_L3,std_L3,mask_L3) # Compute L3
+    L3 = compute_L123(u_Q,u_U,cn_Q_FM,cn_U_FM,coeffs_target_L3,std_L3,mask_L3) # Compute L3
     print("L3 = "+str(round(L3.item(),3)))
     ######################
     wph_op.load_model(wph_model_cross)
-    L4 = compute_L45(u_Q,torch.from_numpy(cn_Q_FM).to(device),coeffs_target_L4,std_L4,mask_L4) # Compute L4
+    L4 = compute_L45(u_Q,cn_Q_FM,coeffs_target_L4,std_L4,mask_L4) # Compute L4
     print("L4 = "+str(round(L4.item(),3)))
-    L5 = compute_L45(u_U,torch.from_numpy(cn_U_FM).to(device),coeffs_target_L5,std_L5,mask_L5) # Compute L5
+    L5 = compute_L45(u_U,cn_U_FM,coeffs_target_L5,std_L5,mask_L5) # Compute L5
     print("L5 = "+str(round(L5.item(),3)))
     ######################
     wph_op.load_model(wph_model)
-    L6 = compute_L67(u_Q,torch.from_numpy(d_Q_FM).to(device),coeffs_target_L6,std_L6,mask_L6) # Compute L6
+    L6 = compute_L67(u_Q,d_Q_FM,coeffs_target_L6,std_L6,mask_L6) # Compute L6
     print("L6 = "+str(round(L6.item(),3)))
-    L7 = compute_L67(u_U,torch.from_numpy(d_U_FM).to(device),coeffs_target_L7,std_L7,mask_L7) # Compute L7
+    L7 = compute_L67(u_U,d_U_FM,coeffs_target_L7,std_L7,mask_L7) # Compute L7
     print("L7 = "+str(round(L7.item(),3)))
     ######################
     L = L1 + L2 + L3 + L4 + L5 + L6 + L7
