@@ -400,7 +400,10 @@ if __name__ == "__main__":
         print("Era "+str(i+1)+" done !")
         
     ## Second minimization
-    print("Starting first minimization...")
+    print('')
+    print('')
+    print('')
+    print("Starting second minimization...")
     eval_cnt = 0
     s_tilde = s_tilde0
     # L6
