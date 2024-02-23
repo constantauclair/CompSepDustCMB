@@ -168,6 +168,7 @@ def compute_std_L45(u_A, conta_A):
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
+        print('')
         print('begin batch',i+1)
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(I).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
@@ -179,7 +180,9 @@ def compute_std_L45(u_A, conta_A):
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
         del u, nb_chunks, batch_COEFFS
         sys.stdout.flush() # Flush the standard output
+    print('Compute the std...')
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
+    print('std computed !')
     return std.to(device)
 
 def compute_mean_std_L67(conta_A):
