@@ -56,8 +56,8 @@ dn = 5
 file_name="separation_IQU_"+str(freqs[freq])+".npy"
 
 Mn = 50
-n_step = 5
-iter_per_step = 50
+n_step = 1#5
+iter_per_step = 5#50
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
