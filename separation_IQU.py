@@ -164,13 +164,16 @@ def compute_std_L123(u_A, u_B, conta_A, conta_B):
 
 def compute_std_L45(u_A, conta_A):
     coeffs_ref = wph_op.apply([u_A,torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
+    print('ref computed')
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
+        print('begin batch')
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(I).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
+            print('begin chunk')
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
@@ -453,16 +456,6 @@ if __name__ == "__main__":
         coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4),dim=0),torch.unsqueeze(torch.imag(coeffs_L4),dim=0)))
         mask_L4 = compute_mask([s_tilde[0],torch.from_numpy(I).to(device)], std_L4, cross=True)
         print('L4 prepared !')
-        #############################
-        # L4
-        print('Preparing L4...')
-        wph_op.load_model(wph_model_cross)
-        std_L4 = compute_std_L45(s_tilde[0], cn_Q_FM_batch)
-        coeffs_L4 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4),dim=0),torch.unsqueeze(torch.imag(coeffs_L4),dim=0)))
-        mask_L4 = compute_mask([s_tilde[0],torch.from_numpy(I).to(device)], std_L4, cross=True)
-        print('L4 prepared !')
-        #############################
         # L5
         print('Preparing L5...')
         wph_op.load_model(wph_model_cross)
