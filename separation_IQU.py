@@ -63,7 +63,7 @@ optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor"
 
 device = 0 # GPU to use
 
-batch_size = 2
+batch_size = 5
 n_batch = int(Mn/batch_size)
 
 wph_model = ["S11","S00","S01","Cphase","C01","C00","L"]
@@ -164,16 +164,15 @@ def compute_std_L123(u_A, u_B, conta_A, conta_B):
 
 def compute_std_L45(u_A, conta_A):
     coeffs_ref = wph_op.apply([u_A,torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
-    print('ref computed')
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
-        print('begin batch')
+        print('begin batch',i+1)
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(I).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
-            print('begin chunk')
+            print('begin chunk',j+1)
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
@@ -460,13 +459,9 @@ if __name__ == "__main__":
         print('Preparing L5...')
         wph_op.load_model(wph_model_cross)
         std_L5 = compute_std_L45(s_tilde[1], cn_U_FM_batch)
-        print('STD computed !')
         coeffs_L5 = wph_op.apply([torch.from_numpy(d_U_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
-        print('Coeffs computed !')
         coeffs_target_L5 = torch.cat((torch.unsqueeze(torch.real(coeffs_L5),dim=0),torch.unsqueeze(torch.imag(coeffs_L5),dim=0)))
-        print('Coeffs target computed !')
         mask_L5 = compute_mask([s_tilde[1],torch.from_numpy(I).to(device)], std_L5, cross=True)
-        print('Mask computed !')
         print('L5 prepared !')
         # Minimization
         print('Beginning optimization...')
