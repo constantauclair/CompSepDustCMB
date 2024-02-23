@@ -453,6 +453,16 @@ if __name__ == "__main__":
         coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4),dim=0),torch.unsqueeze(torch.imag(coeffs_L4),dim=0)))
         mask_L4 = compute_mask([s_tilde[0],torch.from_numpy(I).to(device)], std_L4, cross=True)
         print('L4 prepared !')
+        #############################
+        # L4
+        print('Preparing L4...')
+        wph_op.load_model(wph_model_cross)
+        std_L4 = compute_std_L45(s_tilde[0], cn_Q_FM_batch)
+        coeffs_L4 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
+        coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4),dim=0),torch.unsqueeze(torch.imag(coeffs_L4),dim=0)))
+        mask_L4 = compute_mask([s_tilde[0],torch.from_numpy(I).to(device)], std_L4, cross=True)
+        print('L4 prepared !')
+        #############################
         # L5
         print('Preparing L5...')
         wph_op.load_model(wph_model_cross)
