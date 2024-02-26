@@ -53,11 +53,11 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_"+str(freqs[freq])+".npy"
+file_name="separation_IQU_"+str(freqs[freq])+"_3steps_30iters.npy"
 
 Mn = 50
-n_step = 1#5
-iter_per_step = 5#50
+n_step = 3
+iter_per_step = 30
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -168,21 +168,16 @@ def compute_std_L45(u_A, conta_A):
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
     for i in range(n_batch):
-        print('')
-        print('begin batch',i+1)
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure([u_A + conta_A[i],torch.from_numpy(I).expand(conta_A[i].size()).to(device)], pbc=pbc, cross=True)
         for j in range(nb_chunks):
-            print('begin chunk',j+1)
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc, cross=True)
             batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
         del u, nb_chunks, batch_COEFFS
         sys.stdout.flush() # Flush the standard output
-    print('Compute the std...')
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
-    print('std computed !')
     return std.to(device)
 
 def compute_mean_std_L67(conta_A):
