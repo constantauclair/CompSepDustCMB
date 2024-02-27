@@ -208,33 +208,7 @@ def compute_mean_std_L67(conta_A):
 #     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
 #     return mask.to(device)
 
-def compute_mask_S11(x,cross=False):
-    if cross:
-        wph_op.load_model(wph_model_cross)
-    if not cross:
-        wph_op.load_model(wph_model)
-    full_coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    coeffs_for_hist = np.abs(full_coeffs.cpu().numpy().flatten())
-    non_zero_coeffs_for_hist = coeffs_for_hist[np.where(coeffs_for_hist>0)]
-    hist, bins_edges = np.histogram(np.log10(non_zero_coeffs_for_hist),bins=100,density=True)
-    bins = (bins_edges[:-1] + bins_edges[1:]) / 2
-    x = bins
-    y = hist
-    def func(x, mu1, sigma1, amp1, mu2, sigma2, amp2):
-        y = amp1 * np.exp( -((x - mu1)/sigma1)**2) + amp2 * np.exp( -((x - mu2)/sigma2)**2)
-        return y
-    guess = [x[0]+(x[-1]-x[0])/4, 1, 0.3, x[0]+3*(x[-1]-x[0])/4, 1, 0.3]
-    popt, pcov = curve_fit(func, x, y, p0=guess)
-    thresh = 10**((popt[0]+popt[3])/2)
-    wph_op.load_model(['S11'])
-    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    mask_real = torch.real(coeffs).to(device) > thresh
-    mask_imag = torch.imag(coeffs).to(device) > thresh
-    mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
-    return mask.to(device)
-
-def compute_mask(x,std,cross=False):
-    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+def get_thresh(coeffs):
     coeffs_for_hist = np.abs(coeffs.cpu().numpy().flatten())
     non_zero_coeffs_for_hist = coeffs_for_hist[np.where(coeffs_for_hist>0)]
     hist, bins_edges = np.histogram(np.log10(non_zero_coeffs_for_hist),bins=100,density=True)
@@ -246,9 +220,28 @@ def compute_mask(x,std,cross=False):
         return y
     guess = [x[0]+(x[-1]-x[0])/4, 1, 0.3, x[0]+3*(x[-1]-x[0])/4, 1, 0.3]
     popt, pcov = curve_fit(func, x, y, p0=guess)
-    thresh = (popt[0]+popt[3])/2
-    mask_real = torch.logical_and(torch.real(coeffs).to(device) > 10**thresh, std[0].to(device) > 0)
-    mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > 10**thresh, std[1].to(device) > 0)
+    thresh = 10**((popt[0]+popt[3])/2)
+    return thresh
+
+def compute_mask_S11(x,cross=False):
+    if cross:
+        wph_op.load_model(wph_model_cross)
+    if not cross:
+        wph_op.load_model(wph_model)
+    full_coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+    thresh = get_thresh(full_coeffs)
+    wph_op.load_model(['S11'])
+    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+    mask_real = torch.real(coeffs).to(device) > thresh
+    mask_imag = torch.imag(coeffs).to(device) > thresh
+    mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
+    return mask.to(device)
+
+def compute_mask(x,std,cross=False):
+    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+    thresh = get_thresh(coeffs)
+    mask_real = torch.logical_and(torch.real(coeffs).to(device) > thresh, std[0].to(device) > 0)
+    mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > thresh, std[1].to(device) > 0)
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
