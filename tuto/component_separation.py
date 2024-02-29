@@ -137,8 +137,10 @@ def objective(x):
     start_time = time.time()
     u = x.reshape((N, N)) # Reshape x
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    L = compute_loss(u, coeffs_target, std, mask)
-    u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
+    L = compute_loss(u, coeffs_target, std, mask) # Compute the loss
+    u_grad = u.grad.cpu().numpy().astype(x.dtype) # Compute the gradient
+    print(u)
+    print(u_grad)
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
     print("")
