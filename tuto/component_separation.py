@@ -37,10 +37,10 @@ file_name="separation_results.npy" # Name of the ouput file
 
 (N, N) = np.shape(d) # Size of the maps
 J = int(np.log2(N)-2) # Maximum scale to take into account
-L = 1#4 # Number of wavelet orientations in [0,pi]
+L = 4 # Number of wavelet orientations in [0,pi]
 method = 'L-BFGS-B' # Optimizer
 pbc = False # Periodic boundary conditions
-dn = 0#5 # Number of translations
+dn = 5 # Number of translations
 Mn = np.shape(n)[0] # Number of noise realizations
 n_step = 3 # Number of steps of optimization
 iter_per_step = 30 # Number of iterations in each step
