@@ -26,18 +26,22 @@ This algorithm solves the inverse problem d = s + n from a statistical point of 
 # INPUT DATA
 ###############################################################################
 
-d = np.load('d.npy').astype(np.float64) # Load the contaminated data
-n = np.load('n.npy').astype(np.float64) # Load the set of noise realizations
+s = np.load('s.npy').astype(np.float64) # Load the contaminated data
 
 ###############################################################################
 # INPUT PARAMETERS
 ###############################################################################
 
+SNR = 2
+
 style = 'JM' # Component separation style : 'B' for 'à la Bruno' and 'JM' for 'à la Jean-Marc'
 
 file_name="separation_results_"+style+".npy" # Name of the ouput file
 
-(N, N) = np.shape(d) # Size of the maps
+(N, N) = np.shape(s) # Size of the maps
+n_noise = 50 # Number of noise realizations
+d = s + np.random.normal(0,np.std(s)/SNR,size=(N,N)).astype(np.float64) # Creates the noisy map
+n = np.random.normal(0,np.std(s)/SNR,size=(n_noise,N,N)).astype(np.float64) # Creates the set of noise realizations
 J = int(np.log2(N)-2) # Maximum scale to take into account
 L = 4 # Number of wavelet orientations in [0,pi]
 method = 'L-BFGS-B' # Optimizer
@@ -229,4 +233,4 @@ if __name__ == "__main__":
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     if file_name is not None:
-        np.save(file_name, np.array([d,s_tilde,s_tilde0]))
+        np.save(file_name, np.array([d,s,s_tilde,s_tilde0]))
