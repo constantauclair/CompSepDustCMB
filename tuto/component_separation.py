@@ -29,11 +29,13 @@ This algorithm solves the inverse problem d = s + n from a statistical point of 
 d = np.load('d.npy').astype(np.float64) # Load the contaminated data
 n = np.load('n.npy').astype(np.float64) # Load the set of noise realizations
 
-file_name="separation_results.npy" # Name of the ouput file
-
 ###############################################################################
 # INPUT PARAMETERS
 ###############################################################################
+
+style = 'JM' # Component separation style : 'B' for 'à la Bruno' and 'JM' for 'à la Jean-Marc'
+
+file_name="separation_results_"+style+".npy" # Name of the ouput file
 
 (N, N) = np.shape(d) # Size of the maps
 J = int(np.log2(N)-2) # Maximum scale to take into account
@@ -60,7 +62,7 @@ def create_batch(n, device):
         batch[i] = torch.from_numpy(n)[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-def compute_std(x, noise_batch):
+def compute_bias_std(x, noise_batch):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
@@ -70,13 +72,14 @@ def compute_std(x, noise_batch):
         u, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
         del u, nb_chunks, batch_COEFFS
         sys.stdout.flush() # Flush the standard output
+    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
-    return std.to(device)
+    return bias.to(device), std.to(device)
 
 def get_thresh(coeffs):
     coeffs_for_hist = np.abs(coeffs.cpu().numpy().flatten())
@@ -116,7 +119,7 @@ def compute_mask(x,std):
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
-def compute_loss(x,coeffs_target,std,mask):
+def compute_loss_B(x,coeffs_target,std,mask):
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
     mask = mask.to(device)
@@ -131,13 +134,30 @@ def compute_loss(x,coeffs_target,std,mask):
             del coeffs_chunk, indices, loss
     return loss_tot
 
+def compute_loss_JM(x,coeffs_target,std,mask):
+    coeffs_target = coeffs_target.to(device)
+    std = std.to(device)
+    mask = mask.to(device)
+    loss_tot = torch.zeros(1)
+    u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
+        loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
+        loss.backward(retain_graph=True)
+        loss_tot += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+    return loss_tot
+
 def objective(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
     u = x.reshape((N, N)) # Reshape x
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    L = compute_loss(u, coeffs_target, std, mask) # Compute the loss
+    if style == 'B':
+        L = compute_loss_B(u, coeffs_target, std, mask) # Compute the loss 'à la Bruno'
+    if style == 'JM':
+        L = compute_loss_JM(u, coeffs_target, std, mask) # Compute the loss 'à la Jean-Marc'
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Compute the gradient
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
@@ -167,9 +187,12 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
         print('Computing stuff...')
-        std = compute_std(s_tilde0, n_batch)
+        bias, std = compute_bias_std(s_tilde0, n_batch)
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
-        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
+        if style == 'B':
+            coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
+        if style == 'JM':
+            coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
         mask = compute_mask_S11(s_tilde0)
         print('Stuff computed !')
         print('Beginning optimization...')
@@ -188,9 +211,12 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         print('Computing stuff...')
-        std = compute_std(s_tilde, n_batch)
+        bias, std = compute_bias_std(s_tilde, n_batch)
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
-        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
+        if style == 'B':
+            coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
+        if style == 'JM':
+            coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
         mask = compute_mask(s_tilde, std)
         print('Stuff computed !')
         print('Beginning optimization...')
