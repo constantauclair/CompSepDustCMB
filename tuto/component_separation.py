@@ -34,20 +34,19 @@ s = np.load('s.npy').astype(np.float64) # Load the contaminated data
 
 SNR = 2
 
-style = 'JM' # Component separation style : 'B' for 'à la Bruno' and 'JM' for 'à la Jean-Marc'
+style = 'B' # Component separation style : 'B' for 'à la Bruno' and 'JM' for 'à la Jean-Marc'
 
 file_name="separation_results_"+style+".npy" # Name of the ouput file
 
 (N, N) = np.shape(s) # Size of the maps
-n_noise = 50 # Number of noise realizations
+Mn = 50 # Number of noise realizations
 d = s + np.random.normal(0,np.std(s)/SNR,size=(N,N)).astype(np.float64) # Creates the noisy map
-n = np.random.normal(0,np.std(s)/SNR,size=(n_noise,N,N)).astype(np.float64) # Creates the set of noise realizations
+n = np.random.normal(0,np.std(s)/SNR,size=(Mn,N,N)).astype(np.float64) # Creates the set of noise realizations
 J = int(np.log2(N)-2) # Maximum scale to take into account
 L = 4 # Number of wavelet orientations in [0,pi]
 method = 'L-BFGS-B' # Optimizer
 pbc = False # Periodic boundary conditions
 dn = 5 # Number of translations
-Mn = np.shape(n)[0] # Number of noise realizations
 n_step = 3 # Number of steps of optimization
 iter_per_step = 30 # Number of iterations in each step
 device = 0 # GPU to use
@@ -67,6 +66,7 @@ def create_batch(n, device):
     return batch.to(device)
 
 def compute_bias_std(x, noise_batch):
+    # Computes the noise-induced bias on x and the corresponding std
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
