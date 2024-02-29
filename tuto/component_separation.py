@@ -56,7 +56,7 @@ wph_model = ["S11","S00","S01","Cphase","C01","C00","L"] # Set of WPH coefficien
 def create_batch(n, device):
     batch = torch.zeros([n_batch,batch_size,N,N])
     for i in range(n_batch):
-        batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
+        batch[i] = torch.from_numpy(n)[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
 def compute_bias_std(x, noise_batch):
@@ -101,6 +101,8 @@ def compute_mask_S11(x):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc)
     mask_real = torch.real(coeffs).to(device) > thresh
     mask_imag = torch.imag(coeffs).to(device) > thresh
+    print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
+    print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
@@ -109,6 +111,8 @@ def compute_mask(x,std):
     thresh = get_thresh(coeffs)
     mask_real = torch.logical_and(torch.real(coeffs).to(device) > thresh, std[0].to(device) > 0)
     mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > thresh, std[1].to(device) > 0)
+    print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
+    print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
