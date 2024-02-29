@@ -46,7 +46,7 @@ n_step = 3 # Number of steps of optimization
 iter_per_step = 30 # Number of iterations in each step
 device = 0 # GPU to use
 batch_size = 5 # Size of the batches for WPH computations
-n_batch = int(Mn/batch_size) # Number of batches
+batch_number = int(Mn/batch_size) # Number of batches
 wph_model = ["S11","S00","S01","Cphase","C01","C00","L"] # Set of WPH coefficient to use
 
 ###############################################################################
@@ -54,8 +54,8 @@ wph_model = ["S11","S00","S01","Cphase","C01","C00","L"] # Set of WPH coefficien
 ###############################################################################
 
 def create_batch(n, device):
-    batch = torch.zeros([n_batch,batch_size,N,N])
-    for i in range(n_batch):
+    batch = torch.zeros([batch_number,batch_size,N,N])
+    for i in range(batch_number):
         batch[i] = torch.from_numpy(n)[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
@@ -64,7 +64,7 @@ def compute_bias_std(x, noise_batch):
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
     COEFFS = torch.zeros((Mn,coeffs_number)).type(dtype=ref_type)
-    for i in range(n_batch):
+    for i in range(batch_number):
         batch_COEFFS = torch.zeros((batch_size,coeffs_number)).type(dtype=ref_type)
         u, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
