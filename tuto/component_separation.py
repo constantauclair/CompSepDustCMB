@@ -26,8 +26,8 @@ This algorithm solves the inverse problem d = s + n from a statistical point of 
 # INPUT DATA
 ###############################################################################
 
-d = np.load('d.npy') # Load the contaminated data
-n = np.load('n.npy') # Load the set of noise realizations
+d = np.load('d.npy').astype(np.float64) # Load the contaminated data
+n = np.load('n.npy').astype(np.float64) # Load the set of noise realizations
 
 file_name="separation_results.npy" # Name of the ouput file
 
