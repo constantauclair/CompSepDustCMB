@@ -59,7 +59,7 @@ def create_batch(n, device):
         batch[i] = torch.from_numpy(n)[i*batch_size:(i+1)*batch_size,:,:]
     return batch.to(device)
 
-def compute_bias_std(x, noise_batch):
+def compute_std(x, noise_batch):
     coeffs_ref = wph_op.apply(x, norm=None, pbc=pbc)
     coeffs_number = coeffs_ref.size(-1)
     ref_type = coeffs_ref.type()
@@ -69,14 +69,13 @@ def compute_bias_std(x, noise_batch):
         u, nb_chunks = wph_op.preconfigure(x + noise_batch[i], pbc=pbc)
         for j in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(u, j, norm=None, ret_indices=True, pbc=pbc)
-            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type) - coeffs_ref[indices].type(dtype=ref_type)
+            batch_COEFFS[:,indices] = coeffs_chunk.type(dtype=ref_type)
             del coeffs_chunk, indices
         COEFFS[i*batch_size:(i+1)*batch_size] = batch_COEFFS
         del u, nb_chunks, batch_COEFFS
         sys.stdout.flush() # Flush the standard output
-    bias = torch.cat((torch.unsqueeze(torch.mean(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.mean(torch.imag(COEFFS),axis=0),dim=0)))
     std = torch.cat((torch.unsqueeze(torch.std(torch.real(COEFFS),axis=0),dim=0),torch.unsqueeze(torch.std(torch.imag(COEFFS),axis=0),dim=0)))
-    return bias.to(device), std.to(device)
+    return std.to(device)
 
 def get_thresh(coeffs):
     coeffs_for_hist = np.abs(coeffs.cpu().numpy().flatten())
@@ -121,13 +120,14 @@ def compute_loss(x,coeffs_target,std,mask):
     std = std.to(device)
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
-    u, nb_chunks = wph_op.preconfigure(x, requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(u, i, norm=None, ret_indices=True, pbc=pbc)
-        loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
-        loss.backward(retain_graph=True)
-        loss_tot += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
+    for j in range(Mn):
+        x_noisy, nb_chunks = wph_op.preconfigure(x + n[j], requires_grad=True, pbc=pbc)
+        for i in range(nb_chunks):
+            coeffs_chunk, indices = wph_op.apply(x_noisy, i, norm=None, ret_indices=True, pbc=pbc)
+            loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
+            loss.backward(retain_graph=True)
+            loss_tot += loss.detach().cpu()
+            del coeffs_chunk, indices, loss
     return loss_tot
 
 def objective(x):
@@ -166,15 +166,10 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
         print('Computing stuff...')
-        bias, std = compute_bias_std(s_tilde0, n_batch)
+        std = compute_std(s_tilde0, n_batch)
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
-        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
+        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         mask = compute_mask_S11(s_tilde0)
-        print(bias[0])
-        print(std[0])
-        print(torch.real(coeffs))
-        print(coeffs_target[0])
-        print(mask[0])
         print('Stuff computed !')
         print('Beginning optimization...')
         result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options={"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
@@ -192,9 +187,9 @@ if __name__ == "__main__":
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         print('Computing stuff...')
-        bias, std = compute_bias_std(s_tilde, n_batch)
+        std = compute_std(s_tilde, n_batch)
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
-        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
+        coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         mask = compute_mask(s_tilde, std)
         print('Stuff computed !')
         print('Beginning optimization...')
