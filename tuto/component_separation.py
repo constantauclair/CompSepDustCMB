@@ -37,7 +37,7 @@ file_name="separation_results.npy" # Name of the ouput file
 
 (N, N) = np.shape(d) # Size of the maps
 J = int(np.log2(N)-2) # Maximum scale to take into account
-L = 4 # Number of wavelet orientations in [0,pi]
+L = 1#4 # Number of wavelet orientations in [0,pi]
 method = 'L-BFGS-B' # Optimizer
 pbc = False # Periodic boundary conditions
 dn = 0#5 # Number of translations
@@ -54,6 +54,7 @@ wph_model = ["S11","S00","S01","Cphase","C01","C00","L"] # Set of WPH coefficien
 ###############################################################################
 
 def create_batch(n, device):
+    # Creates a batches of noise maps to speed up the std computations.
     batch = torch.zeros([batch_number,batch_size,N,N])
     for i in range(batch_number):
         batch[i] = torch.from_numpy(n)[i*batch_size:(i+1)*batch_size,:,:]
@@ -170,6 +171,11 @@ if __name__ == "__main__":
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
         coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         mask = compute_mask_S11(s_tilde0)
+        
+        print(std[0])
+        print(coeffs_target[0])
+        print(mask[0])
+        
         print('Stuff computed !')
         print('Beginning optimization...')
         result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options={"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
