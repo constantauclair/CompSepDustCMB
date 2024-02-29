@@ -121,7 +121,7 @@ def compute_loss(x,coeffs_target,std,mask):
     mask = mask.to(device)
     loss_tot = torch.zeros(1)
     for j in range(Mn):
-        x_noisy, nb_chunks = wph_op.preconfigure(x + n[j], requires_grad=True, pbc=pbc)
+        x_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(n[j]).to(device), requires_grad=True, pbc=pbc)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(x_noisy, i, norm=None, ret_indices=True, pbc=pbc)
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
