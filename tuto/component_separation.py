@@ -125,6 +125,8 @@ def compute_loss(x,coeffs_target,std,mask):
         x_noisy, nb_chunks = wph_op.preconfigure(x + torch.from_numpy(n[j]).to(device), requires_grad=True, pbc=pbc)
         for i in range(nb_chunks):
             coeffs_chunk, indices = wph_op.apply(x_noisy, i, norm=None, ret_indices=True, pbc=pbc)
+            print("Coeffs =",torch.real(coeffs_chunk))
+            print("Target =",coeffs_target[0][indices])
             loss = ( torch.sum(torch.abs( (torch.real(coeffs_chunk)[mask[0,indices]] - coeffs_target[0][indices][mask[0,indices]]) / std[0][indices][mask[0,indices]] ) ** 2) + torch.sum(torch.abs( (torch.imag(coeffs_chunk)[mask[1,indices]] - coeffs_target[1][indices][mask[1,indices]]) / std[1][indices][mask[1,indices]] ) ** 2) ) / ( mask[0].sum() + mask[1].sum() ) / Mn
             loss.backward(retain_graph=True)
             loss_tot += loss.detach().cpu()
@@ -139,8 +141,6 @@ def objective(x):
     u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
     L = compute_loss(u, coeffs_target, std, mask) # Compute the loss
     u_grad = u.grad.cpu().numpy().astype(x.dtype) # Compute the gradient
-    print(u)
-    print(u_grad)
     print("L = "+str(round(L.item(),3)))
     print("(computed in "+str(round(time.time() - start_time,3))+"s)")
     print("")
@@ -173,11 +173,6 @@ if __name__ == "__main__":
         coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
         coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         mask = compute_mask_S11(s_tilde0)
-        
-        print(std[0])
-        print(coeffs_target[0])
-        print(mask[0])
-        
         print('Stuff computed !')
         print('Beginning optimization...')
         result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options={"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
