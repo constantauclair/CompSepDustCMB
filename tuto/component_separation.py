@@ -32,7 +32,7 @@ s = np.load('s.npy').astype(np.float64) # Load the contaminated data
 # INPUT PARAMETERS
 ###############################################################################
 
-SNR = 2
+SNR = 2 # Signal-to-noise ratio
 
 style = 'B' # Component separation style : 'B' for 'à la Bruno' and 'JM' for 'à la Jean-Marc'
 
@@ -86,6 +86,7 @@ def compute_bias_std(x, noise_batch):
     return bias.to(device), std.to(device)
 
 def get_thresh(coeffs):
+    # Computes the appropriate threshold for the WPH coefficients
     coeffs_for_hist = np.abs(coeffs.cpu().numpy().flatten())
     non_zero_coeffs_for_hist = coeffs_for_hist[np.where(coeffs_for_hist>0)]
     hist, bins_edges = np.histogram(np.log10(non_zero_coeffs_for_hist),bins=100,density=True)
@@ -101,6 +102,7 @@ def get_thresh(coeffs):
     return thresh
 
 def compute_mask_S11(x):
+    # Computes the mask for S11 coeffs (at the first step)
     wph_op.load_model(wph_model)
     full_coeffs = wph_op.apply(x,norm=None,pbc=pbc)
     thresh = get_thresh(full_coeffs)
@@ -114,6 +116,7 @@ def compute_mask_S11(x):
     return mask.to(device)
 
 def compute_mask(x,std):
+    # Computes the mask for the full set of coeffs (at the second step)
     coeffs = wph_op.apply(x,norm=None,pbc=pbc)
     thresh = get_thresh(coeffs)
     mask_real = torch.logical_and(torch.real(coeffs).to(device) > thresh, std[0].to(device) > 0)
@@ -124,6 +127,7 @@ def compute_mask(x,std):
     return mask.to(device)
 
 def compute_loss_B(x,coeffs_target,std,mask):
+    # Computes the loss 'à la Bruno'
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
     mask = mask.to(device)
@@ -139,6 +143,7 @@ def compute_loss_B(x,coeffs_target,std,mask):
     return loss_tot
 
 def compute_loss_JM(x,coeffs_target,std,mask):
+    # Computes the loss 'à la Jean-Marc'
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
     mask = mask.to(device)
@@ -153,6 +158,7 @@ def compute_loss_JM(x,coeffs_target,std,mask):
     return loss_tot
 
 def objective(x):
+    # Computes the loss and the corresponding gradient 
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
     start_time = time.time()
@@ -186,18 +192,18 @@ if __name__ == "__main__":
     ## First minimization
     print("Starting first minimization...")
     eval_cnt = 0
-    s_tilde0 = d
+    s_tilde0 = d # The optimzation starts from d
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
         s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
         print('Computing stuff...')
-        bias, std = compute_bias_std(s_tilde0, n_batch)
-        coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
+        bias, std = compute_bias_std(s_tilde0, n_batch) # Computation of the bias and std
+        coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc) # Coeffs computation
         if style == 'B':
             coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         if style == 'JM':
             coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
-        mask = compute_mask_S11(s_tilde0)
+        mask = compute_mask_S11(s_tilde0) # Mask computation
         print('Stuff computed !')
         print('Beginning optimization...')
         result = opt.minimize(objective, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options={"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
@@ -209,19 +215,19 @@ if __name__ == "__main__":
     ## Second minimization
     print("Starting second minimization...")
     eval_cnt = 0
-    s_tilde = s_tilde0
+    s_tilde = s_tilde0 # The second step starts from the result of the first step
     wph_op.load_model(wph_model)
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
         print('Computing stuff...')
-        bias, std = compute_bias_std(s_tilde, n_batch)
-        coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc)
+        bias, std = compute_bias_std(s_tilde, n_batch) # Computation of the bias and std
+        coeffs = wph_op.apply(torch.from_numpy(d).to(device), norm=None, pbc=pbc) # Coeffs computation
         if style == 'B':
             coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs),dim=0),torch.unsqueeze(torch.imag(coeffs),dim=0)))
         if style == 'JM':
             coeffs_target = torch.cat((torch.unsqueeze(torch.real(coeffs)-bias[0],dim=0),torch.unsqueeze(torch.imag(coeffs)-bias[1],dim=0)))
-        mask = compute_mask(s_tilde, std)
+        mask = compute_mask(s_tilde, std) # Mask computation
         print('Stuff computed !')
         print('Beginning optimization...')
         result = opt.minimize(objective, s_tilde.cpu().ravel(), method=method, jac=True, tol=None, options={"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20})
