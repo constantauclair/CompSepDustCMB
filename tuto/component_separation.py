@@ -108,8 +108,8 @@ def compute_mask_S11(x):
     thresh = get_thresh(full_coeffs)
     wph_op.load_model(['S11'])
     coeffs = wph_op.apply(x,norm=None,pbc=pbc)
-    mask_real = torch.real(coeffs).to(device) > thresh
-    mask_imag = torch.imag(coeffs).to(device) > thresh
+    mask_real = torch.abs(torch.real(coeffs)).to(device) > thresh
+    mask_imag = torch.abs(torch.imag(coeffs)).to(device) > thresh
     print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
     print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
@@ -119,8 +119,8 @@ def compute_mask(x,std):
     # Computes the mask for the full set of coeffs (at the second step)
     coeffs = wph_op.apply(x,norm=None,pbc=pbc)
     thresh = get_thresh(coeffs)
-    mask_real = torch.logical_and(torch.real(coeffs).to(device) > thresh, std[0].to(device) > 0)
-    mask_imag = torch.logical_and(torch.imag(coeffs).to(device) > thresh, std[1].to(device) > 0)
+    mask_real = torch.logical_and(torch.abs(torch.real(coeffs)).to(device) > thresh, std[0].to(device) > 0)
+    mask_imag = torch.logical_and(torch.abs(torch.imag(coeffs)).to(device) > thresh, std[1].to(device) > 0)
     print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
     print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))

@@ -54,11 +54,11 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_B-JM_"+str(freqs[freq])+"_3steps_30iters.npy"
+file_name="separation_IQU_B-JM_"+str(freqs[freq])+"_3steps_100iters.npy"
 
 Mn = 50
 n_step = 3
-iter_per_step = 30
+iter_per_step = 100
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
@@ -223,22 +223,6 @@ def get_thresh(coeffs):
     thresh = 10**((popt[0]+popt[3])/2)
     return thresh
 
-def compute_mask_S11(x,cross=False):
-    if cross:
-        wph_op.load_model(wph_model_cross)
-    if not cross:
-        wph_op.load_model(wph_model)
-    full_coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    thresh = get_thresh(full_coeffs)
-    wph_op.load_model(['S11'])
-    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    mask_real = torch.abs(torch.real(coeffs)).to(device) > thresh
-    mask_imag = torch.abs(torch.imag(coeffs)).to(device) > thresh
-    print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
-    print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
-    mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
-    return mask.to(device)
-
 def compute_mask(x,std,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
     thresh = get_thresh(coeffs)
@@ -295,40 +279,6 @@ def compute_L67(x,obs,coeffs_target,std,mask):
 # OBJECTIVE FUNCTIONS
 ###############################################################################
 
-def objective_S11(x):
-    global eval_cnt
-    print(f"Evaluation: {eval_cnt}")
-    start_time = time.time()
-    u = x.reshape((2, M, N)) # Reshape x
-    u = torch.from_numpy(u).to(device).requires_grad_(True) # Track operations on u
-    u_Q = u[0]
-    u_U = u[1]
-    ######################
-    L1 = compute_L123(u_Q,u_Q,coeffs_target_L1,std_L1,mask_L1) # Compute L1
-    print("L1 = "+str(round(L1.item(),3)))
-    L2 = compute_L123(u_U,u_U,coeffs_target_L2,std_L2,mask_L2) # Compute L2
-    print("L2 = "+str(round(L2.item(),3)))
-    L3 = compute_L123(u_Q,u_U,coeffs_target_L3,std_L3,mask_L3) # Compute L3
-    print("L3 = "+str(round(L3.item(),3)))
-    ######################
-    L4 = compute_L45(u_Q,coeffs_target_L4,std_L4,mask_L4) # Compute L4
-    print("L4 = "+str(round(L4.item(),3)))
-    L5 = compute_L45(u_U,coeffs_target_L5,std_L5,mask_L5) # Compute L5
-    print("L5 = "+str(round(L5.item(),3)))
-    ######################
-    L6 = compute_L67(u_Q,d_Q_FM,coeffs_target_L6,std_L6,mask_L6) # Compute L6
-    print("L6 = "+str(round(L6.item(),3)))
-    L7 = compute_L67(u_U,d_U_FM,coeffs_target_L7,std_L7,mask_L7) # Compute L7
-    print("L7 = "+str(round(L7.item(),3)))
-    ######################
-    L = L1 + L2 + L3 + L4 + L5 + L6 + L7
-    u_grad = u.grad.cpu().numpy().astype(x.dtype) # Reshape the gradient
-    print("L = "+str(round(L.item(),3)))
-    print("(computed in "+str(round(time.time() - start_time,3))+"s)")
-    print("")
-    eval_cnt += 1
-    return L.item(), u_grad.ravel()
-
 def objective(x):
     global eval_cnt
     print(f"Evaluation: {eval_cnt}")
@@ -379,73 +329,9 @@ if __name__ == "__main__":
     wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
-    ## First minimization
-    print("Starting first minimization...")
+    print("Starting minimization...")
     eval_cnt = 0
-    s_tilde0 = Bruno_result
-    # L6
-    print('Preparing L6...')
-    coeffs_target_L6, std_L6 = compute_mean_std_L67(cn_Q_FM_batch)
-    mask_L6 = compute_mask_S11(cn_Q_FM_batch[0,0])
-    print('L6 prepared !')
-    # L7
-    print('Preparing L7...')
-    coeffs_target_L7, std_L7 = compute_mean_std_L67(cn_U_FM_batch)
-    mask_L7 = compute_mask_S11(cn_U_FM_batch[0,0])
-    print('L7 prepared !')
-    for i in range(n_step):
-        print("Starting era "+str(i+1)+"...")
-        s_tilde0 = torch.from_numpy(s_tilde0).to(device) # Initialization of the map
-        # L1
-        print('Preparing L1...')
-        bias_L1, std_L1 = compute_bias_std_L123(s_tilde0[0], s_tilde0[0], cn_Q_HM1_batch, cn_Q_HM2_batch)
-        coeffs_L1 = wph_op.apply([torch.from_numpy(d_Q_HM1).to(device),torch.from_numpy(d_Q_HM2).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1)-bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1)-bias_L1[1],dim=0)))
-        mask_L1 = compute_mask_S11([s_tilde0[0],s_tilde0[0]], cross=True)
-        print('L1 prepared !')
-        # L2
-        print('Preparing L2...')
-        bias_L2, std_L2 = compute_bias_std_L123(s_tilde0[1], s_tilde0[1], cn_U_HM1_batch, cn_U_HM2_batch)
-        coeffs_L2 = wph_op.apply([torch.from_numpy(d_U_HM1).to(device),torch.from_numpy(d_U_HM2).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2)-bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2)-bias_L2[1],dim=0)))
-        mask_L2 = compute_mask_S11([s_tilde0[1],s_tilde0[1]], cross=True)
-        print('L2 prepared !')
-        # L3
-        print('Preparing L3..')
-        bias_L3, std_L3 = compute_bias_std_L123(s_tilde0[0], s_tilde0[1], cn_Q_FM_batch, cn_U_FM_batch)
-        coeffs_L3 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(d_U_FM).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3)-bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3)-bias_L3[1],dim=0)))
-        mask_L3 = compute_mask_S11([s_tilde0[0],s_tilde0[1]], cross=True)
-        print('L3 prepared !')
-        # L4
-        print('Preparing L4...')
-        bias_L4, std_L4 = compute_bias_std_L45(s_tilde0[0], cn_Q_FM_batch)
-        coeffs_L4 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4)-bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L4)-bias_L4[1],dim=0)))
-        mask_L4 = compute_mask_S11([s_tilde0[0],torch.from_numpy(I).to(device)], cross=True)
-        print('L4 prepared !')
-        # L5
-        print('Preparing L5...')
-        bias_L5, std_L5 = compute_bias_std_L45(s_tilde0[1], cn_U_FM_batch)
-        coeffs_L5 = wph_op.apply([torch.from_numpy(d_U_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
-        coeffs_target_L5 = torch.cat((torch.unsqueeze(torch.real(coeffs_L5)-bias_L5[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L5)-bias_L5[1],dim=0)))
-        mask_L5 = compute_mask_S11([s_tilde0[1],torch.from_numpy(I).to(device)], cross=True)
-        print('L5 prepared !')
-        # Minimization
-        print('Beginning optimization...')
-        result = opt.minimize(objective_S11, s_tilde0.cpu().ravel(), method=method, jac=True, tol=None, options=optim_params)
-        final_loss, s_tilde0, niter, msg = result['fun'], result['x'], result['nit'], result['message']
-        # Reshaping
-        s_tilde0 = s_tilde0.reshape((2, M, N)).astype(np.float32)
-        print("Era "+str(i+1)+" done !")
-        
-    ## Second minimization
-    print('')
-    print('')
-    print('')
-    print("Starting second minimization...")
-    eval_cnt = 0
-    s_tilde = s_tilde0
+    s_tilde = Bruno_result
     # L6
     print('Preparing L6...')
     wph_op.load_model(wph_model)
@@ -512,4 +398,4 @@ if __name__ == "__main__":
     ## Output
     print("Denoising done ! (in {:}s)".format(time.time() - total_start_time))
     if file_name is not None:
-        np.save(file_name, np.array([I,d_Q_FM,s_tilde[0],d_Q_FM-s_tilde[0],s_tilde0[0],d_U_FM,s_tilde[1],d_U_FM-s_tilde[1],s_tilde0[1]]))
+        np.save(file_name, np.array([I,d_Q_FM,s_tilde[0],d_Q_FM-s_tilde[0],Bruno_result[0],d_U_FM,s_tilde[1],d_U_FM-s_tilde[1],Bruno_result[1]]))
