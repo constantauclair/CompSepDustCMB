@@ -54,7 +54,7 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_B-JM_"+str(freqs[freq])+"_3steps_100iters.npy"
+file_name="separation_IQU_B-JM_"+str(freqs[freq])+"_3steps_100iters_testmask.npy"
 
 Mn = 50
 n_step = 3
@@ -233,6 +233,15 @@ def compute_mask(x,std,cross=False):
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
     return mask.to(device)
 
+def compute_mask_test(x,std,cross=False):
+    coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
+    mask_real = torch.logical_and(torch.abs(torch.real(coeffs)).to(device) > 0, torch.abs(torch.real(coeffs)/std[0]).to(device) > 1e-3)
+    mask_imag = torch.logical_and(torch.abs(torch.imag(coeffs)).to(device) > 0, torch.abs(torch.imag(coeffs)/std[1]).to(device) > 1e-3)
+    print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
+    print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
+    mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
+    return mask.to(device)
+
 def compute_L123(x_A,x_B,coeffs_target,std,mask):
     coeffs_target = coeffs_target.to(device)
     std = std.to(device)
@@ -326,7 +335,6 @@ if __name__ == "__main__":
     print("Building operator...")
     start_time = time.time()
     wph_op = pw.WPHOp(M, N, J, L=L, dn=dn, device=device)
-    wph_op.load_model(["S11"])
     print("Done ! (in {:}s)".format(time.time() - start_time))
     
     print("Starting minimization...")
