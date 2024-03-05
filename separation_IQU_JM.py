@@ -453,13 +453,13 @@ if __name__ == "__main__":
     print('Preparing L6...')
     wph_op.load_model(wph_model)
     coeffs_target_L6, std_L6 = compute_mean_std_L67(cn_Q_FM_batch)
-    mask_L6 = compute_mask_test(cn_Q_FM_batch[0,0], std_L6)
+    mask_L6 = compute_mask_test(cn_Q_FM_batch[0,0])
     print('L6 prepared !')
     # L7
     print('Preparing L7...')
     wph_op.load_model(wph_model)
     coeffs_target_L7, std_L7 = compute_mean_std_L67(cn_U_FM_batch)
-    mask_L7 = compute_mask_test(cn_U_FM_batch[0,0], std_L7)
+    mask_L7 = compute_mask_test(cn_U_FM_batch[0,0])
     print('L7 prepared !')
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
