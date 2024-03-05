@@ -53,9 +53,9 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_JM_firstB_"+str(freqs[freq])+"_maskthresh2sigma.npy"
+file_name="separation_IQU_JM_firstB_"+str(freqs[freq])+"_maskthresh2sigma_Mn=20.npy"
 
-Mn = 50
+Mn = 20
 n_step = 3
 iter_per_step = 30
 
