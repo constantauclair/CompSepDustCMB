@@ -61,7 +61,7 @@ iter_per_step = 30
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
-device = 1 # GPU to use
+device = 0 # GPU to use
 
 batch_size = 5
 n_batch = int(Mn/batch_size)
