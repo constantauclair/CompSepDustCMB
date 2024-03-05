@@ -432,6 +432,7 @@ if __name__ == "__main__":
     for i in range(n_step):
         print("Starting era "+str(i+1)+"...")
         s_tilde = torch.from_numpy(s_tilde).to(device) # Initialization of the map
+        s_tilde_for_bias_std = torch.from_numpy(s_tilde_for_bias_std).to(device) # Initialization of the map
         # L1
         print('Preparing L1...')
         wph_op.load_model(wph_model_cross)
