@@ -235,8 +235,8 @@ def compute_mask(x,std,cross=False):
 
 def compute_mask_test(x,std,cross=False):
     coeffs = wph_op.apply(x,norm=None,pbc=pbc,cross=cross)
-    mask_real = torch.logical_and(torch.abs(torch.real(coeffs)).to(device) > 0, torch.abs(torch.real(coeffs)/std[0]).to(device) > 1e-3)
-    mask_imag = torch.logical_and(torch.abs(torch.imag(coeffs)).to(device) > 0, torch.abs(torch.imag(coeffs)/std[1]).to(device) > 1e-3)
+    mask_real = torch.abs(torch.real(coeffs)).to(device) > 0
+    mask_imag = torch.abs(torch.imag(coeffs)).to(device) > 0
     print("Real mask computed :",int(100*(mask_real.sum()/mask_real.size(dim=0)).item()),"% of coeffs kept !")
     print("Imaginary mask computed :",int(100*(mask_imag.sum()/mask_imag.size(dim=0)).item()),"% of coeffs kept !")
     mask = torch.cat((torch.unsqueeze(mask_real,dim=0),torch.unsqueeze(mask_imag,dim=0)))
@@ -361,7 +361,7 @@ if __name__ == "__main__":
         bias_L1, std_L1 = compute_bias_std_L123(s_tilde[0], s_tilde[0], cn_Q_HM1_batch, cn_Q_HM2_batch)
         coeffs_L1 = wph_op.apply([torch.from_numpy(d_Q_HM1).to(device),torch.from_numpy(d_Q_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L1 = torch.cat((torch.unsqueeze(torch.real(coeffs_L1)-bias_L1[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L1)-bias_L1[1],dim=0)))
-        mask_L1 = compute_mask_test([s_tilde[0],s_tilde[0]], std_L1, cross=True)
+        mask_L1 = compute_mask_test([torch.from_numpy(d_Q_HM1).to(device),torch.from_numpy(d_Q_HM2).to(device)], std_L1, cross=True)
         print('L1 prepared !')
         # L2
         print('Preparing L2...')
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         bias_L2, std_L2 = compute_bias_std_L123(s_tilde[1], s_tilde[1], cn_U_HM1_batch, cn_U_HM2_batch)
         coeffs_L2 = wph_op.apply([torch.from_numpy(d_U_HM1).to(device),torch.from_numpy(d_U_HM2).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L2 = torch.cat((torch.unsqueeze(torch.real(coeffs_L2)-bias_L2[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L2)-bias_L2[1],dim=0)))
-        mask_L2 = compute_mask_test([s_tilde[1],s_tilde[1]], std_L2, cross=True)
+        mask_L2 = compute_mask_test([torch.from_numpy(d_U_HM1).to(device),torch.from_numpy(d_U_HM2).to(device)], std_L2, cross=True)
         print('L2 prepared !')
         # L3
         print('Preparing L3...')
@@ -377,7 +377,7 @@ if __name__ == "__main__":
         bias_L3, std_L3 = compute_bias_std_L123(s_tilde[0], s_tilde[1], cn_Q_FM_batch, cn_U_FM_batch)
         coeffs_L3 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(d_U_FM).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L3 = torch.cat((torch.unsqueeze(torch.real(coeffs_L3)-bias_L3[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L3)-bias_L3[1],dim=0)))
-        mask_L3 = compute_mask_test([s_tilde[0],s_tilde[1]], std_L3, cross=True)
+        mask_L3 = compute_mask_test([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(d_U_FM).to(device)], std_L3, cross=True)
         print('L3 prepared !')
         # L4
         print('Preparing L4...')
@@ -385,7 +385,7 @@ if __name__ == "__main__":
         bias_L4, std_L4 = compute_bias_std_L45(s_tilde[0], cn_Q_FM_batch)
         coeffs_L4 = wph_op.apply([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L4 = torch.cat((torch.unsqueeze(torch.real(coeffs_L4)-bias_L4[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L4)-bias_L4[1],dim=0)))
-        mask_L4 = compute_mask_test([s_tilde[0],torch.from_numpy(I).to(device)], std_L4, cross=True)
+        mask_L4 = compute_mask_test([torch.from_numpy(d_Q_FM).to(device),torch.from_numpy(I).to(device)], std_L4, cross=True)
         print('L4 prepared !')
         # L5
         print('Preparing L5...')
@@ -393,7 +393,7 @@ if __name__ == "__main__":
         bias_L5, std_L5 = compute_bias_std_L45(s_tilde[1], cn_U_FM_batch)
         coeffs_L5 = wph_op.apply([torch.from_numpy(d_U_FM).to(device),torch.from_numpy(I).to(device)], norm=None, pbc=pbc, cross=True)
         coeffs_target_L5 = torch.cat((torch.unsqueeze(torch.real(coeffs_L5)-bias_L5[0],dim=0),torch.unsqueeze(torch.imag(coeffs_L5)-bias_L5[1],dim=0)))
-        mask_L5 = compute_mask_test([s_tilde[1],torch.from_numpy(I).to(device)], std_L5, cross=True)
+        mask_L5 = compute_mask_test([torch.from_numpy(d_U_FM).to(device),torch.from_numpy(I).to(device)], std_L5, cross=True)
         print('L5 prepared !')
         # Minimization
         print('Beginning optimization...')
