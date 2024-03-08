@@ -129,21 +129,21 @@ cn_U_HM2 = c_U + n_U_HM2
 # USEFUL FUNCTIONS
 ###############################################################################
 
-def create_batch(n, device):
+def create_batch(n):
     batch = torch.zeros([n_batch,batch_size,M,N])
     for i in range(n_batch):
         batch[i] = n[i*batch_size:(i+1)*batch_size,:,:]
-    return batch.to(device)
+    return batch
 
 print('Creating batches...')
 
-cn_Q_FM_batch = create_batch(torch.from_numpy(cn_Q_FM).to(devices[0]), device=devices[0])
-cn_Q_HM1_batch = create_batch(torch.from_numpy(cn_Q_HM1).to(devices[0]), device=devices[0])
-cn_Q_HM2_batch = create_batch(torch.from_numpy(cn_Q_HM2).to(devices[0]), device=devices[0])
+cn_Q_FM_batch = create_batch(torch.from_numpy(cn_Q_FM)).to(devices[0])
+cn_Q_HM1_batch = create_batch(torch.from_numpy(cn_Q_HM1)).to(devices[0])
+cn_Q_HM2_batch = create_batch(torch.from_numpy(cn_Q_HM2)).to(devices[0])
 
-cn_U_FM_batch = create_batch(torch.from_numpy(cn_U_FM).to(devices[0]), device=devices[0])
-cn_U_HM1_batch = create_batch(torch.from_numpy(cn_U_HM1).to(devices[0]), device=devices[0])
-cn_U_HM2_batch = create_batch(torch.from_numpy(cn_U_HM2).to(devices[0]), device=devices[0])
+cn_U_FM_batch = create_batch(torch.from_numpy(cn_U_FM)).to(devices[0])
+cn_U_HM1_batch = create_batch(torch.from_numpy(cn_U_HM1)).to(devices[0])
+cn_U_HM2_batch = create_batch(torch.from_numpy(cn_U_HM2)).to(devices[0])
 
 print('Batches computed !')
 
