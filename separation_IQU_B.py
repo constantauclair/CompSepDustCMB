@@ -54,9 +54,9 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_B_"+str(freqs[freq])+"_3steps_30iters.npy"
+file_name="separation_IQU_B_"+str(freqs[freq])+"_3steps_30iters_Mn=100.npy"
 
-Mn = 50
+Mn = 100
 n_step = 3
 iter_per_step = 30
 
