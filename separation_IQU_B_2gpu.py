@@ -58,7 +58,7 @@ dn = 5
 
 file_name="separation_IQU_B_2gpu_"+str(freqs[freq])+"_3steps_30iters_.npy"
 
-Mn = 80
+Mn = 50
 n_step = 3
 iter_per_step = 30
 
