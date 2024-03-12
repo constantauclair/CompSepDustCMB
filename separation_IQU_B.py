@@ -54,11 +54,11 @@ method = 'L-BFGS-B'
 pbc = False
 dn = 5
 
-file_name="separation_IQU_B_"+str(freqs[freq])+"_3steps_30iters_Mn=100.npy"
+file_name="separation_IQU_B_"+str(freqs[freq])+"_5steps_50iters_Mn=100.npy"
 
 Mn = 100
-n_step = 3
-iter_per_step = 30
+n_step = 5
+iter_per_step = 50
 
 optim_params = {"maxiter": iter_per_step, "gtol": 1e-14, "ftol": 1e-14, "maxcor": 20}
 
