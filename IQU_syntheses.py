@@ -14,12 +14,16 @@ optim_params = {"maxiter": 100}
 nsynth = 1
 cross_pairs = [[0,1],[0,2],[1,2]]
 
-sigma = 1
-gauss = Gaussian2DKernel(sigma)
+# sigma = 1
+# gauss = Gaussian2DKernel(sigma)
 
-I = convolve(np.log(separation[0]),gauss)
-Q = convolve(separation[2],gauss)
-U = convolve(separation[6],gauss)
+# I = convolve(np.log(separation[0]),gauss)
+# Q = convolve(separation[2],gauss)
+# U = convolve(separation[6],gauss)
+
+I = np.log(separation[0])
+Q = separation[2]
+U = separation[6]
 
 x_IQU = np.array([I,Q,U])
 x_std = x_IQU.std(axis=(-1, -2),keepdims=True)
