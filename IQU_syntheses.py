@@ -45,7 +45,7 @@ U = convolve(separation[6],gauss)
 tapper = apodize(np.shape(I)[0],np.shape(I)[1],apo)
 I = (I-np.mean(I)) * tapper + np.mean(I)
 Q = (Q-np.mean(Q)) * tapper + np.mean(Q)
-I = (U-np.mean(U)) * tapper + np.mean(U)
+U = (U-np.mean(U)) * tapper + np.mean(U)
 
 x_IQU = np.array([I,Q,U])
 x_std = x_IQU.std(axis=(-1, -2),keepdims=True)
