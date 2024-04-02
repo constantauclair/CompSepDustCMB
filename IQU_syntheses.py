@@ -27,7 +27,7 @@ x_mean = x_IQU.mean(axis=(-1, -2), keepdims=True)
 x_target = (x_IQU - x_mean) / x_std
 
 x_0 = get_initialization(x_target, nsynth=nsynth)
-x_s = synthesis(x_target, x_0, J, L, dn, device=device, optim_params=optim_params, pbc=False, cross_pairs=cross_pairs, wph_model=['S11','S00','S01','Cphase','C00','C01','L'])
+x_s = synthesis(x_target, x_0, J, L, dn, device=device, optim_params=optim_params, pbc_in=False, pbc_out=True, cross_pairs=cross_pairs, wph_model=['S11','S00','S01','Cphase','C00','C01','L'])
 
 x_syn = x_s * x_std + x_mean
 
