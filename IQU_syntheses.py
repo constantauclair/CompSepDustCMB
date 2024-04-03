@@ -12,7 +12,7 @@ L = 4
 dn = 5
 device = 0
 optim_params = {"maxiter": 100}
-nsynth = 100
+nsynth = 30
 cross_pairs = [[0,1],[0,2],[1,2]]
 
 # sigma = 1
@@ -38,4 +38,4 @@ x_syn = x_s * x_std + x_mean
 
 x_final = np.concatenate((np.array([x_IQU]),x_syn),axis=0)  
 
-np.save('100_IQU_synthesis.npy',x_final)
+np.save('30_IQU_synthesis.npy',x_final)
