@@ -54,7 +54,7 @@ def objective(x):
     start_time = time.time()
     # Reshape x
     x_curr = x.reshape((2, M, N))
-    x_curr = torch.from_numpy(x_curr).requires_grad(True)
+    x_curr = torch.from_numpy(x_curr).requires_grad()
     # Compute the loss Q
     loss_tot_Q = torch.zeros(1)
     wph_op.clear_normalization()
