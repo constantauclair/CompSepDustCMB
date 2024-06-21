@@ -87,7 +87,7 @@ def objective(x):
     loss_tot_QoverI = torch.zeros(1)
     wph_op.clear_normalization()
     wph_op.apply(x_target[0]/I, norm="auto", pbc=pbc)
-    x_curr_QoverI, nb_chunks = wph_op.preconfigure(x_curr[0]/I, requires_grad=True, pbc=pbc)
+    x_curr_QoverI, nb_chunks = wph_op.preconfigure(x_curr[0]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr_QoverI, i, norm="auto", ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_QoverI[indices]) ** 2)
@@ -99,7 +99,7 @@ def objective(x):
     loss_tot_UoverI = torch.zeros(1)
     wph_op.clear_normalization()
     wph_op.apply(x_target[1]/I, norm="auto", pbc=pbc)
-    x_curr_UoverI, nb_chunks = wph_op.preconfigure(x_curr[1]/I, requires_grad=True, pbc=pbc)
+    x_curr_UoverI, nb_chunks = wph_op.preconfigure(x_curr[1]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
     for i in range(nb_chunks):
         coeffs_chunk, indices = wph_op.apply(x_curr_UoverI, i, norm="auto", ret_indices=True, pbc=pbc)
         loss = torch.sum(torch.abs(coeffs_chunk - coeffs_UoverI[indices]) ** 2)
