@@ -17,7 +17,7 @@ from_xxx_to_353 = [1/0.0190,1/0.0394,1/0.132,1]
 
 separation = np.load('separation_IQU_B_'+str(freqs[freq])+'_5steps_50iters_Mn=100.npy')[:,64:-64,64:-64].astype(np.float64)*from_xxx_to_353[freq]
 I = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_IQU_maps.npy')[0,3,0,64:-64,64:-64].astype(np.float64)
-#I = (I-np.mean(I))/np.std(I)
+I = I / np.std(I) #(I-np.mean(I))/np.std(I)
 
 Q = separation[2]
 U = separation[6]
@@ -33,7 +33,7 @@ pbc = False
 x_QU = np.array([Q,U])
 x_std = x_QU.std(axis=(-1, -2),keepdims=True)
 x_mean = x_QU.mean(axis=(-1, -2), keepdims=True)
-x_target = x_QU #(x_QU - x_mean) / x_std
+x_target = x_QU / x_std #(x_QU - x_mean) / x_std
 
 wph_op = pw.WPHOp(M ,N , J, L=L, dn=dn, device=device)
 model=["S11","S00","S01","Cphase","C01","C00","L"]
@@ -124,13 +124,13 @@ def objective(x):
 QU_syntheses=np.zeros([n_syn,2,M,N])
 
 for i in range(n_syn):
-    x0 = np.random.normal(x_mean, x_std, (2,M,N)) #np.random.normal(0, 1, (2,M,N))
+    x0 = np.random.normal(x_mean/x_std, 1, (2,M,N)) #np.random.normal(0, 1, (2,M,N))
     x0 = torch.from_numpy(x0)
     result = opt.minimize(objective, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
     _, x_final, niter, msg = result['fun'], result['x'], result['nit'], result['message']
     x_final = x_final.reshape((2, M, N)).astype(np.float64)
-    QU_syntheses[i] = x_final #* x_std + x_mean
+    QU_syntheses[i] = x_final * x_std #x_final * x_std + x_mean
 
 x_return = np.concatenate((np.array([x_QU]),QU_syntheses),axis=0)  
 
-np.save(str(n_syn)+'_QU_synthesis_'+str(freqs[freq])+'_notstand.npy',x_return)
+np.save(str(n_syn)+'_QU_synthesis_'+str(freqs[freq])+'_standstd.npy',x_return)
