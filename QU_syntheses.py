@@ -124,7 +124,7 @@ def objective(x):
 QU_syntheses=np.zeros([n_syn,2,M,N])
 
 for i in range(n_syn):
-    x0 = np.random.normal(0, 1, (2,M,N))
+    x0 = np.random.normal(x_mean, x_std, (2,M,N)) #np.random.normal(0, 1, (2,M,N))
     x0 = torch.from_numpy(x0)
     result = opt.minimize(objective, x0.ravel(), method='L-BFGS-B', jac=True, tol=None, options=optim_params)
     _, x_final, niter, msg = result['fun'], result['x'], result['nit'], result['message']
