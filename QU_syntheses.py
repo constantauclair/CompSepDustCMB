@@ -16,7 +16,7 @@ freqs = [100,143,217,353]
 from_xxx_to_353 = [1/0.0190,1/0.0394,1/0.132,1]
 
 separation = np.load('separation_IQU_B_'+str(freqs[freq])+'_5steps_50iters_Mn=100.npy')[:,64:-64,64:-64].astype(np.float64)*from_xxx_to_353[freq]
-I = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_IQU_maps.npy')[0,3,0,64:-64,64:-64].astype(np.float64)
+I = np.load('data/IQU_Planck_data/Sroll20_data/Sroll20_IQU_maps.npy')[0,3,0,64:-64,64:-64].astype(np.float64) - 450 + 27
 I = I / np.std(I) #(I-np.mean(I))/np.std(I)
 
 Q = separation[2]
