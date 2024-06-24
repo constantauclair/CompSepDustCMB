@@ -54,6 +54,8 @@ wph_op.clear_normalization()
 coeffs_IU = wph_op.apply([I,x_target[1]], norm="auto", pbc=pbc, cross=True)
 wph_op.clear_normalization()
 coeffs_p = wph_op.apply(np.sqrt(x_target[0]**2+x_target[1]**2)/I, norm="auto", pbc=pbc)
+wph_op.clear_normalization()
+coeffs_P = wph_op.apply(np.sqrt(x_target[0]**2+x_target[1]**2), norm="auto", pbc=pbc)
 print("Done !")
 
 def objective(x):
@@ -157,9 +159,21 @@ def objective(x):
         loss_tot_p += loss.detach().cpu()
         del coeffs_chunk, indices, loss
     print("Loss p =",loss_tot_p.item())
+    # Compute the loss P
+    loss_tot_P = torch.zeros(1)
+    wph_op.clear_normalization()
+    wph_op.apply(np.sqrt(x_target[0]**2+x_target[1]**2), norm="auto", pbc=pbc)
+    x_curr_P, nb_chunks = wph_op.preconfigure(torch.sqrt(x_curr[0]**2+x_curr[1]**2), requires_grad=True, pbc=pbc)
+    for i in range(nb_chunks):
+        coeffs_chunk, indices = wph_op.apply(x_curr_P, i, norm="auto", ret_indices=True, pbc=pbc)
+        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_P[indices]) ** 2)
+        loss.backward(retain_graph=True)
+        loss_tot_P += loss.detach().cpu()
+        del coeffs_chunk, indices, loss
+    print("Loss P =",loss_tot_P.item())
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
-    loss_tot = loss_tot_Q + loss_tot_U + loss_tot_QU + loss_tot_IQ + loss_tot_IU + loss_tot_p # + loss_tot_QoverI + loss_tot_UoverI
+    loss_tot = loss_tot_Q + loss_tot_U + loss_tot_QU + loss_tot_IQ + loss_tot_IU + loss_tot_p + loss_tot_P # + loss_tot_QoverI + loss_tot_UoverI
     print(f"Loss: {loss_tot.item()} (computed in {time.time() - start_time}s)")
     return loss_tot.item(), x_grad.ravel()
     
