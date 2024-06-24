@@ -43,10 +43,10 @@ coeffs_Q = wph_op.apply(x_target[0], norm="auto", pbc=pbc)
 wph_op.clear_normalization()
 coeffs_U = wph_op.apply(x_target[1], norm="auto", pbc=pbc)
 wph_op.clear_normalization()
-coeffs_QoverI = wph_op.apply(x_target[0]/I, norm="auto", pbc=pbc)
-wph_op.clear_normalization()
-coeffs_UoverI = wph_op.apply(x_target[1]/I, norm="auto", pbc=pbc)
-wph_op.clear_normalization()
+# coeffs_QoverI = wph_op.apply(x_target[0]/I, norm="auto", pbc=pbc)
+# wph_op.clear_normalization()
+# coeffs_UoverI = wph_op.apply(x_target[1]/I, norm="auto", pbc=pbc)
+# wph_op.clear_normalization()
 coeffs_QU = wph_op.apply([x_target[0],x_target[1]], norm="auto", pbc=pbc, cross=True)
 wph_op.clear_normalization()
 coeffs_IQ = wph_op.apply([I,x_target[0]], norm="auto", pbc=pbc, cross=True)
@@ -85,30 +85,30 @@ def objective(x):
         loss_tot_U += loss.detach().cpu()
         del coeffs_chunk, indices, loss
     print("Loss U =",loss_tot_U.item())
-    # Compute the loss Q/I
-    loss_tot_QoverI = torch.zeros(1)
-    wph_op.clear_normalization()
-    wph_op.apply(x_target[0]/I, norm="auto", pbc=pbc)
-    x_curr_QoverI, nb_chunks = wph_op.preconfigure(x_curr[0]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr_QoverI, i, norm="auto", ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_QoverI[indices]) ** 2)
-        loss.backward(retain_graph=True)
-        loss_tot_QoverI += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
-    print("Loss Q/I =",loss_tot_QoverI.item())
-    # Compute the loss U/I
-    loss_tot_UoverI = torch.zeros(1)
-    wph_op.clear_normalization()
-    wph_op.apply(x_target[1]/I, norm="auto", pbc=pbc)
-    x_curr_UoverI, nb_chunks = wph_op.preconfigure(x_curr[1]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
-    for i in range(nb_chunks):
-        coeffs_chunk, indices = wph_op.apply(x_curr_UoverI, i, norm="auto", ret_indices=True, pbc=pbc)
-        loss = torch.sum(torch.abs(coeffs_chunk - coeffs_UoverI[indices]) ** 2)
-        loss.backward(retain_graph=True)
-        loss_tot_UoverI += loss.detach().cpu()
-        del coeffs_chunk, indices, loss
-    print("Loss U/I =",loss_tot_UoverI.item())
+    # # Compute the loss Q/I
+    # loss_tot_QoverI = torch.zeros(1)
+    # wph_op.clear_normalization()
+    # wph_op.apply(x_target[0]/I, norm="auto", pbc=pbc)
+    # x_curr_QoverI, nb_chunks = wph_op.preconfigure(x_curr[0]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(x_curr_QoverI, i, norm="auto", ret_indices=True, pbc=pbc)
+    #     loss = torch.sum(torch.abs(coeffs_chunk - coeffs_QoverI[indices]) ** 2)
+    #     loss.backward(retain_graph=True)
+    #     loss_tot_QoverI += loss.detach().cpu()
+    #     del coeffs_chunk, indices, loss
+    # print("Loss Q/I =",loss_tot_QoverI.item())
+    # # Compute the loss U/I
+    # loss_tot_UoverI = torch.zeros(1)
+    # wph_op.clear_normalization()
+    # wph_op.apply(x_target[1]/I, norm="auto", pbc=pbc)
+    # x_curr_UoverI, nb_chunks = wph_op.preconfigure(x_curr[1]/torch.from_numpy(I).to(device), requires_grad=True, pbc=pbc)
+    # for i in range(nb_chunks):
+    #     coeffs_chunk, indices = wph_op.apply(x_curr_UoverI, i, norm="auto", ret_indices=True, pbc=pbc)
+    #     loss = torch.sum(torch.abs(coeffs_chunk - coeffs_UoverI[indices]) ** 2)
+    #     loss.backward(retain_graph=True)
+    #     loss_tot_UoverI += loss.detach().cpu()
+    #     del coeffs_chunk, indices, loss
+    # print("Loss U/I =",loss_tot_UoverI.item())
     # Compute the loss QU
     loss_tot_QU = torch.zeros(1)
     wph_op.clear_normalization()
@@ -159,7 +159,7 @@ def objective(x):
     print("Loss p =",loss_tot_p.item())
     # Reshape the gradient
     x_grad = x_curr.grad.cpu().numpy().astype(x.dtype)
-    loss_tot = loss_tot_Q + loss_tot_U + loss_tot_QoverI + loss_tot_UoverI + loss_tot_QU + loss_tot_IQ + loss_tot_IU + loss_tot_p
+    loss_tot = loss_tot_Q + loss_tot_U + loss_tot_QU + loss_tot_IQ + loss_tot_IU + loss_tot_p # + loss_tot_QoverI + loss_tot_UoverI
     print(f"Loss: {loss_tot.item()} (computed in {time.time() - start_time}s)")
     return loss_tot.item(), x_grad.ravel()
     
@@ -175,4 +175,4 @@ for i in range(n_syn):
 
 x_return = np.concatenate((np.array([x_QU]),QU_syntheses),axis=0)  
 
-np.save(str(n_syn)+'_QU_p_synthesis_'+str(freqs[freq])+'.npy',x_return)
+np.save(str(n_syn)+'_QU_only_p_synthesis_'+str(freqs[freq])+'.npy',x_return)
