@@ -189,4 +189,4 @@ for i in range(n_syn):
 
 x_return = np.concatenate((np.array([x_QU]),QU_syntheses),axis=0)  
 
-np.save(str(n_syn)+'_QU_only_p_synthesis_'+str(freqs[freq])+'.npy',x_return)
+np.save(str(n_syn)+'_QU_pP_synthesis_'+str(freqs[freq])+'.npy',x_return)
